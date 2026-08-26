@@ -76,7 +76,7 @@ printf "%-28s %-9s %s\n" "Check" "Result" "Detail"
 printf "%-28s %-9s %s\n" "-----" "------" "------"
 
 run_frontend() {
-	local tag="$1" cfg="$2" nframes="$3" shot="${4:-}"
+	local tag="$1" cfg="$2" nframes="$3" shot="${4:-}" pkg="${5:-$package}" therom="${6:-$rom}"
 	local job="$work/job.$tag.txt"
 	{
 		echo "frames=$nframes"
@@ -87,8 +87,8 @@ run_frontend() {
 	rm -f "$work/$tag.ram.bin" "$work/$tag.meta.txt"
 	[ -n "$shot" ] && rm -f "$shot"
 	( cd "$chimera_root" && MINIHAWK_JOB="$job" timeout 900 mono "$emu_exe" --headless \
-		"--config=$cfg" "--core=$package" \
-		"--lua=$here/frontend-ram.lua" "$rom" ) > "$work/$tag.log" 2>&1
+		"--config=$cfg" "--core=$pkg" \
+		"--lua=$here/frontend-ram.lua" "$therom" ) > "$work/$tag.log" 2>&1
 	[ -f "$work/$tag.meta.txt" ] && grep -q "^status=OK" "$work/$tag.meta.txt"
 }
 
@@ -144,6 +144,50 @@ if run_frontend "keys" "$work/config.keys.ini" 1; then
 	fi
 else
 	report "keybinds" FAIL "run did not report OK (see tests/work/keys.log)"
+fi
+
+# --- the 8-bit packages: one core.wbx, one package per system. The Master
+# System package must open a .sms project as an SMS machine, with ITS
+# controller (six buttons, no X/Y/Z) and its own RAM matching native.
+smspkg="$chimera_root/build/Cores/gpgx-sms.zip"
+smsrom="$root/tests/roms/mai_nurse_v1.00.sms"
+if [ ! -f "$smspkg" ]; then
+	report "sms:frontend" SKIP "gpgx-sms.zip not installed"
+else
+	python3 "$here/settings-config.py" "$config" "$work/config.sms.ini" '{}'
+	python3 - "$work/config.sms.ini" <<'PYSYS'
+import json, sys
+cfg = json.load(open(sys.argv[1]))
+cfg.setdefault("DefaultCores", {})["SMS"] = "Genesis Plus GX"
+json.dump(cfg, open(sys.argv[1], "w"), indent=2)
+PYSYS
+	wd="$work/native.sms"
+	rm -rf "$wd"; mkdir -p "$wd"
+	cp "$smsrom" "$wd/"
+	printf '{"cart":["%s"]}' "$(basename "$smsrom")" > "$wd/slots"
+	"$rn" "$wd" --sys sms --wire 8bit --frames "$frames" \
+		--dump-domain "Main RAM" "$work/native.sms.ram.bin" > "$work/native.sms.txt" 2>&1
+	if ! run_frontend "sms" "$work/config.sms.ini" "$frames" "" "$smspkg" "$smsrom"; then
+		report "sms:frontend" FAIL "no OK meta (see tests/work/sms.log)"
+	elif ! grep -q "^status=OK" "$work/sms.meta.txt"; then
+		report "sms:frontend" FAIL "the run did not report OK"
+	elif cmp -s "$work/native.sms.ram.bin" "$work/sms.ram.bin"; then
+		report "sms:frontend" PASS "a .sms project opened as an SMS machine, RAM identical to native"
+	else
+		report "sms:frontend" FAIL "SMS Main RAM differs from the native reference"
+	fi
+
+	python3 "$here/forget-controller.py" "$work/config.sms.ini" "$work/config.smskeys.ini" "SMS Controller"
+	if run_frontend "smskeys" "$work/config.smskeys.ini" 1 "" "$smspkg" "$smsrom"; then
+		if python3 "$here/check-keybinds.py" "$work/config.smskeys.ini" \
+			"$wb/systems/sms.keybinds.json" "SMS Controller" > "$work/smskeys.txt" 2>&1; then
+			report "sms:keybinds" PASS "$(cat "$work/smskeys.txt")"
+		else
+			report "sms:keybinds" FAIL "$(head -1 "$work/smskeys.txt")"
+		fi
+	else
+		report "sms:keybinds" FAIL "run did not report OK (see tests/work/smskeys.log)"
+	fi
 fi
 
 echo

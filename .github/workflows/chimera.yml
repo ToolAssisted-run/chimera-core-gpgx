@@ -150,11 +150,16 @@ jobs:
       - name: Frontend gate
         run: ./waterbox/tests/run-frontend.sh --chimera-root "$GITHUB_WORKSPACE/chimera-checkout"
 
-      - name: Publish the core package
+      - name: Publish the core packages
+        # one core.wbx, one package per emulated system
         uses: actions/upload-artifact@v7
         with:
           name: gpgx-${{ github.sha }}
-          path: chimera-checkout/build/Cores/gpgx.zip
+          path: |
+            chimera-checkout/build/Cores/gpgx.zip
+            chimera-checkout/build/Cores/gpgx-sms.zip
+            chimera-checkout/build/Cores/gpgx-gg.zip
+            chimera-checkout/build/Cores/gpgx-sg.zip
           if-no-files-found: error
 
       - name: Upload the frontend work dir on failure

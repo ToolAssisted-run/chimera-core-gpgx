@@ -6,8 +6,11 @@
  * digesting video, audio, lag and every memory domain per frame. The two
  * drivers differ only in how the exports are reached.
  *
- * Wire format (waterbox.config button order): 0 Power, 1 Reset, 2 Pause,
- * 3 Previous Disk, 4 Next Disk, then P1..P8 x {U,D,L,R,A,B,C,S,X,Y,Z,M}.
+ * Wire format: one per system, matching the package the machine belongs to
+ * (--wire genesis|8bit|gg; see waterbox/cinterface.c):
+ *   genesis: 0 Power, 1 Reset, 2 Pause, 3 Prev Disk, 4 Next Disk, pads x12
+ *   8bit:    0 Power, 1 Reset, 2 Pause, then P1..P2 x {U,D,L,R,B1,B2}
+ *   gg:      0 Power, 1 Reset, then P1 x {U,D,L,R,B1,B2,Start}
  */
 #ifndef GATE_HARNESS_H
 #define GATE_HARNESS_H
@@ -49,6 +52,7 @@ struct gate_opts
 	const char *sys;      /* genesis | sms | sg1000 | segacd */
 	const char *ctl1;     /* none | gamepad3b | gamepad6b | gamepad2b | gamegear2b */
 	const char *ctl2;
+	const char *wire;     /* genesis | 8bit | gg - the package's button order */
 	const char *screenshotPath; /* optional final-frame .tga */
 	int exercise;         /* nonzero: drive P1 with a deterministic pattern */
 	const char *dumpDomain;     /* optional: memory domain to dump after the run... */
@@ -110,19 +114,41 @@ static int gate_sol_load(const char *path, struct gate_sol *sol)
 	return 1;
 }
 
-/* one controller field -> the wire's pad block at base; returns chars consumed
- * or -1 on a malformed field */
-static int gate_parse_pad(const char *ctl, const char *s, uint8_t *buttons, int base)
+/* where a wire puts its pads, and how wide they are */
+static int gate_pad_base(const char *wire)
+{
+	if (strcmp(wire, "8bit") == 0) return 3;
+	if (strcmp(wire, "gg") == 0) return 2;
+	return 5;
+}
+static int gate_pad_width(const char *wire)
+{
+	if (strcmp(wire, "8bit") == 0) return 6;
+	if (strcmp(wire, "gg") == 0) return 7;
+	return 12;
+}
+
+/* one controller field -> the wire's pad block at base; returns chars
+ * consumed or -1 on a malformed field. The .sol columns are quickerGPGX's;
+ * where a column has no home on this wire (a Game Gear Start on a Master
+ * System, say) the map sends it to -1 and it is dropped. */
+static int gate_parse_pad(const char *ctl, const char *s, uint8_t *buttons,
+	int base, const char *wire)
 {
 	static const int map3b[] = { 0, 1, 2, 3, 4, 5, 6, 7 };
 	static const int map6b[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11 };
-	static const int map2b[] = { 0, 1, 2, 3, 5, 6 };
-	static const int mapgg[] = { 0, 1, 2, 3, 5, 6, 7 };
-	static const struct { const char *name; const char *cols; const int *map; } kinds[] = {
-		{ "gamepad3b", "UDLRABCS", map3b },
-		{ "gamepad6b", "UDLRABCSXYZM", map6b },
-		{ "gamepad2b", "UDLR12", map2b },
-		{ "gamegear2b", "UDLR12S", mapgg },
+	/* on the 8-bit wires the pad is U D L R B1 B2 [Start] */
+	static const int map2b_8[] = { 0, 1, 2, 3, 4, 5 };
+	static const int mapgg_gg[] = { 0, 1, 2, 3, 4, 5, 6 };
+	/* a Master System pad has no Start column: the console's Pause button
+	 * (wire index 2) is the machine-visible one, so the .sol's S lands there
+	 * through the console field, and the pad column is dropped */
+	static const int mapgg_8[] = { 0, 1, 2, 3, 4, 5, -1 };
+	static const struct { const char *name; const char *cols; } kinds[] = {
+		{ "gamepad3b", "UDLRABCS" },
+		{ "gamepad6b", "UDLRABCSXYZM" },
+		{ "gamepad2b", "UDLR12" },
+		{ "gamegear2b", "UDLR12S" },
 	};
 	if (strcmp(ctl, "none") == 0)
 		return 0;
@@ -130,12 +156,24 @@ static int gate_parse_pad(const char *ctl, const char *s, uint8_t *buttons, int 
 	{
 		if (strcmp(ctl, kinds[k].name) != 0)
 			continue;
+		const int *map;
+		if (strcmp(wire, "genesis") == 0)
+		{
+			static const int map2b_gen[] = { 0, 1, 2, 3, 5, 6 };
+			static const int mapgg_gen[] = { 0, 1, 2, 3, 5, 6, 7 };
+			map = k == 0 ? map3b : (k == 1 ? map6b : (k == 2 ? map2b_gen : mapgg_gen));
+		}
+		else if (strcmp(wire, "gg") == 0)
+			map = k == 3 ? mapgg_gg : map2b_8;
+		else
+			map = k == 3 ? mapgg_8 : map2b_8;
 		int n = (int)strlen(kinds[k].cols);
 		for (int i = 0; i < n; i++)
 		{
 			if (s[i] != '.' && s[i] != kinds[k].cols[i])
 				return -1;
-			buttons[base + kinds[k].map[i]] = s[i] != '.';
+			if (map[i] >= 0)
+				buttons[base + map[i]] = s[i] != '.';
 		}
 		return n;
 	}
@@ -144,7 +182,7 @@ static int gate_parse_pad(const char *ctl, const char *s, uint8_t *buttons, int 
 
 /* a full |console|ctl1|ctl2| line -> wire buttons; 0 on malformed input */
 static int gate_parse_line(const char *line, const char *sys, const char *ctl1,
-	const char *ctl2, uint8_t *buttons)
+	const char *ctl2, const char *wire, uint8_t *buttons)
 {
 	memset(buttons, 0, GATE_BTN_COUNT);
 	const char *s = line;
@@ -157,7 +195,9 @@ static int gate_parse_line(const char *line, const char *sys, const char *ctl1,
 	if (strcmp(sys, "sms") == 0)
 	{
 		if (*s != '.' && *s != 'p') return 0;
-		buttons[2] = *s++ == 'p';
+		/* the console Pause button: index 2 on the genesis and 8bit wires */
+		if (strcmp(wire, "gg") != 0) buttons[2] = *s == 'p';
+		s++;
 	}
 	if (strcmp(sys, "segacd") == 0)
 	{
@@ -168,15 +208,26 @@ static int gate_parse_line(const char *line, const char *sys, const char *ctl1,
 	}
 	if (*s++ != '|') return 0;
 
-	int n = gate_parse_pad(ctl1, s, buttons, 5);
+	const int base = gate_pad_base(wire);
+	const int width = gate_pad_width(wire);
+	int n = gate_parse_pad(ctl1, s, buttons, base, wire);
 	if (n < 0) return 0;
 	s += n;
 	if (n > 0 && *s++ != '|') return 0;
 
-	n = gate_parse_pad(ctl2, s, buttons, 5 + 12);
+	n = gate_parse_pad(ctl2, s, buttons, base + width, wire);
 	if (n < 0) return 0;
 	s += n;
 	if (n > 0 && *s++ != '|') return 0;
+
+	/* an SG-1000 .sol may carry a Game Gear pad's Start column; on this
+	 * wire that button belongs to the console, so mirror it there */
+	if (strcmp(wire, "8bit") == 0 && strcmp(ctl1, "gamegear2b") == 0)
+	{
+		const char *field = strchr(line + 1, '|');
+		if (field != NULL && strlen(field) > 7 && field[7] == 'S')
+			buttons[2] = 1;
+	}
 
 	return *s == 0;
 }
@@ -228,7 +279,7 @@ static int gate_run(const struct gate_core *c, const struct gate_opts *o)
 		memset(buttons, 0, sizeof buttons);
 		if (f < sol.count)
 		{
-			if (!gate_parse_line(sol.lines[f], o->sys, o->ctl1, o->ctl2, buttons))
+			if (!gate_parse_line(sol.lines[f], o->sys, o->ctl1, o->ctl2, o->wire, buttons))
 			{
 				fprintf(stderr, "bad movie line %ld: '%s'\n", f, sol.lines[f]);
 				return 1;
@@ -319,6 +370,7 @@ static int gate_parse_opts(int argc, char **argv, int first, struct gate_opts *o
 	o->frames = 600;
 	o->solPath = NULL;
 	o->sys = "genesis";
+	o->wire = "genesis";
 	o->ctl1 = "gamepad3b";
 	o->ctl2 = "none";
 	o->screenshotPath = NULL;
@@ -331,6 +383,7 @@ static int gate_parse_opts(int argc, char **argv, int first, struct gate_opts *o
 		if (!strcmp(argv[i], "--frames") && i + 1 < argc) o->frames = strtol(argv[++i], 0, 0);
 		else if (!strcmp(argv[i], "--sol") && i + 1 < argc) o->solPath = argv[++i];
 		else if (!strcmp(argv[i], "--sys") && i + 1 < argc) o->sys = argv[++i];
+		else if (!strcmp(argv[i], "--wire") && i + 1 < argc) o->wire = argv[++i];
 		else if (!strcmp(argv[i], "--ctl1") && i + 1 < argc) o->ctl1 = argv[++i];
 		else if (!strcmp(argv[i], "--ctl2") && i + 1 < argc) o->ctl2 = argv[++i];
 		else if (!strcmp(argv[i], "--screenshot") && i + 1 < argc) o->screenshotPath = argv[++i];

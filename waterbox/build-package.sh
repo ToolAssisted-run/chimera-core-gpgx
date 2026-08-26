@@ -34,15 +34,27 @@ chimera_root="$(cd "$chimera_root" && pwd)"
 ninja -C "$root/build/meson-guest" core.wbx
 sh "$mb/source/guest/check-wbx.sh" "$root/build/meson-guest/core.wbx"
 
-staging="$root/build/package-staging"
-rm -rf "$staging"
-mkdir -p "$staging"
-cp "$root/build/meson-guest/core.wbx" "$staging/core.wbx"
-cp "$here/waterbox.config" "$staging/waterbox.config"
-cp "$here/default_keybinds.json" "$staging/default_keybinds.json"
-# The core-declared file form for the project wizard (slots, cardinality,
-# formats, tooltips) - the frontend renders it, this file decides it.
-cp "$here/file_slots.json" "$staging/file_slots.json"
+# ONE core.wbx, one package per system it emulates: a package is a machine
+# plus the controller that machine has, so the Master System's package must
+# not offer a Genesis pad's X/Y/Z. waterbox/systems/ holds each package's
+# config, slots and keybinds; the guest picks its wire from the machine it
+# actually booted (see waterbox/cinterface.c).
+build_one() {
+	pkg="$1"; key="$2"
+	staging="$root/build/package-staging/$pkg"
+	rm -rf "$staging"
+	mkdir -p "$staging"
+	cp "$root/build/meson-guest/core.wbx" "$staging/core.wbx"
+	if [ "$key" = "gen" ]; then
+		cp "$here/waterbox.config" "$staging/waterbox.config"
+		cp "$here/default_keybinds.json" "$staging/default_keybinds.json"
+		cp "$here/file_slots.json" "$staging/file_slots.json"
+	else
+		cp "$here/systems/$key.config.json" "$staging/waterbox.config"
+		cp "$here/systems/$key.keybinds.json" "$staging/default_keybinds.json"
+		cp "$here/systems/$key.slots.json" "$staging/file_slots.json"
+	fi
+}
 
 # ---- version (see chimera docs: commit-as-version, stamped by CD) ----
 core_version="${CORE_VERSION:-}"
@@ -54,6 +66,13 @@ if [ -z "$core_version" ]; then
 		core_version="unversioned+local"
 	fi
 fi
+stamp_and_zip() {
+	pkg="$1"; key="$2"
+	build_one "$pkg" "$key"
+	staging="$root/build/package-staging/$pkg"
+	zip_path="$cores_dir/$pkg.zip"
+	rm -f "$zip_path"
+
 python3 - "$staging/waterbox.config" "$core_version" <<'PYVER'
 import json, sys
 path, version = sys.argv[1], sys.argv[2]
@@ -93,16 +112,12 @@ json.dump({
 }, open("$staging/build.json", "w"), indent=2, sort_keys=True)
 PYPROV
 
-cores_dir="$chimera_root/build/Cores"
-mkdir -p "$cores_dir"
-zip_path="$cores_dir/gpgx.zip"
-rm -f "$zip_path"
 # deterministic packaging: sorted entries, fixed timestamp/permissions, pinned
 # compression - the package's SHA1 is the core's identity (movies cite it)
-python3 - "$staging" "$zip_path" <<'PYEOF'
+python3 - "$staging" "$zip_path" "$pkg" <<'PYEOF'
 import hashlib, os, sys, tempfile, zipfile
 
-staging, zip_path = sys.argv[1], sys.argv[2]
+staging, zip_path, pkg = sys.argv[1], sys.argv[2], sys.argv[3]
 FIXED_DATE = (1980, 1, 1, 0, 0, 0)
 
 def write_package(path):
@@ -125,10 +140,20 @@ with tempfile.NamedTemporaryFile(suffix=".zip") as tmp:
 first = hashlib.sha1(open(zip_path, "rb").read()).hexdigest()
 if first != again:
     sys.exit(f"packaging is not deterministic: {first} then {again}")
-print(f"package sha1 {first}")
+print(f"{pkg} sha1 {first}")
 PYEOF
+	echo "packaged -> $zip_path"
+}
 
-for cache in "$chimera_root"/build/CoreCache/gpgx-*; do
+cores_dir="$chimera_root/build/Cores"
+mkdir -p "$cores_dir"
+
+# one package per emulated system, all from the same core.wbx
+stamp_and_zip gpgx gen
+stamp_and_zip gpgx-sms sms
+stamp_and_zip gpgx-gg gg
+stamp_and_zip gpgx-sg sg
+
+for cache in "$chimera_root"/build/CoreCache/gpgx*; do
 	[ -d "$cache" ] && rm -rf "$cache" || true
 done
-echo "packaged -> $zip_path"

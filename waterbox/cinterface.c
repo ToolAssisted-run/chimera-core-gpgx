@@ -38,6 +38,15 @@ int cinterface_force_sram;
 
 static char g_loadError[512];
 static int g_inited;
+
+/* The hardware this package IS. gpgx picks its machine from the loaded
+ * file's extension, and the author's BizHawk port passed that extension
+ * explicitly ("GEN"/"SMS"/".GG"/".SG") rather than trusting a file name -
+ * chimera must do the same, because the frontend mounts a plain rom under
+ * the fixed name "rom" with no extension at all. Each system's package
+ * pins this; "auto" keeps the old sniff-the-name behaviour for the test
+ * runners, which mount real names. */
+static char g_forceExt[8];
 static int g_inputRead;      /* raised by real_input_callback (patched io_ctrl.c) */
 
 /* ---- video: GPGX renders into bitmap.data (1024px pitch); the ABI hands out
@@ -53,23 +62,49 @@ static int g_nsamples;
 static uint8_t *g_tempsram;
 
 /* ---- the wire format: waterbox.config "input.buttons" order ----
- * 0 Power, 1 Reset, 2 Pause (SMS/SG only: the console button, NMI),
- * 3 Previous Disk, 4 Next Disk (Sega CD; the cd slot's list order is the
- * swap order), then P1..P8 x {Up,Down,Left,Right,A,B,C,Start,X,Y,Z,Mode}
- * (the quickerGPGX .sol column order; masks match input.h bit values). On
- * 2-button systems the B/C columns carry Button 1/Button 2 - the same
- * hardware bits. */
-#define BTN_SYS 0
-#define BTN_PADS 5
-#define BTN_PER_PAD 12
-#define BTN_COUNT (BTN_PADS + 8 * BTN_PER_PAD)
+ * ONE core.wbx serves four systems, and each system's PACKAGE declares the
+ * controller that system actually has (the author's BizHawk controller
+ * definitions, shape for shape). The guest picks the matching wire from the
+ * machine it booted - system_hw, not a setting that could disagree:
+ *
+ *   genesis (MD/MCD): 0 Power, 1 Reset, 2 Pause (inert), 3 Previous Disk,
+ *     4 Next Disk, then P1..P8 x {Up,Down,Left,Right,A,B,C,Start,X,Y,Z,Mode}
+ *     (the quickerGPGX .sol column order; masks are input.h bit values)
+ *   sms/sg: 0 Power, 1 Reset, 2 Pause (the CONSOLE button - an INPUT_START
+ *     bit on pad 0, which is what raises the Z80's NMI), then P1..P2 x
+ *     {Up,Down,Left,Right,Button 1,Button 2}
+ *   gg: 0 Power, 1 Reset, then P1 x {Up,Down,Left,Right,Button 1,Button 2,
+ *     Start} - the Game Gear's Start sits on the unit but reads as a pad bit
+ */
+#define WIRE_GENESIS 0
+#define WIRE_8BIT 1
+#define WIRE_GG 2
+static int g_wire = WIRE_GENESIS;
+
+#define BTN_COUNT 101 /* the widest wire (genesis); narrower ones use a prefix */
 static uint8_t g_buttons[BTN_COUNT];
 
-static const uint16_t kPadBits[BTN_PER_PAD] = {
+static const uint16_t kPadBits[12] = {
 	INPUT_UP, INPUT_DOWN, INPUT_LEFT, INPUT_RIGHT,
 	INPUT_A, INPUT_B, INPUT_C, INPUT_START,
 	INPUT_X, INPUT_Y, INPUT_Z, INPUT_MODE,
 };
+
+/* the 8-bit pads: Button 1/Button 2 are the same hardware bits as B/C */
+static const uint16_t kPadBits8[7] = {
+	INPUT_UP, INPUT_DOWN, INPUT_LEFT, INPUT_RIGHT,
+	INPUT_BUTTON1, INPUT_BUTTON2, INPUT_START,
+};
+
+/* where the pads start, and how wide they are, on each wire */
+static int wire_pad_base(void)
+{
+	return g_wire == WIRE_GENESIS ? 5 : (g_wire == WIRE_8BIT ? 3 : 2);
+}
+static int wire_pad_width(void)
+{
+	return g_wire == WIRE_GENESIS ? 12 : (g_wire == WIRE_8BIT ? 6 : 7);
+}
 
 /* dev index -> assigned player (1-based), 0 = no player; built after init by
  * walking input.dev[] exactly like the author's GPGXControlConverter */
@@ -135,10 +170,18 @@ int load_archive(const char *filename, unsigned char *buffer, int maxsize, char 
 {
 	if (extension)
 	{
-		size_t len = strlen(filename);
-		const char *tail = len >= 3 ? filename + len - 3 : filename;
-		memcpy(extension, tail, strlen(tail));
-		extension[3] = 0;
+		if (g_forceExt[0] != 0)
+		{
+			/* the package's hardware wins over any file name */
+			memcpy(extension, g_forceExt, 4);
+		}
+		else
+		{
+			size_t len = strlen(filename);
+			const char *tail = len >= 3 ? filename + len - 3 : filename;
+			memcpy(extension, tail, strlen(tail));
+			extension[3] = 0;
+		}
 	}
 
 	FILE *f = fopen(filename, "rb");
@@ -375,6 +418,22 @@ ECL_EXPORT int Init(void)
 
 	int sixButton = wbx_setting_bool("useSixButton", 0);
 
+	{
+		/* the extension strings are load_rom's own (loadrom.c compares
+		 * "SMS", "GG", "SG" after upper-casing; anything else is a Mega
+		 * Drive cart) */
+		static const char *const names[] = { "auto", "genesis", "sms", "gg", "sg" };
+		static const int values[] = { 0, 1, 2, 3, 4 };
+		switch (opt("systemHardware", "auto", names, values, 5))
+		{
+			case 1: memcpy(g_forceExt, "GEN", 4); break;
+			case 2: memcpy(g_forceExt, "SMS", 4); break;
+			case 3: memcpy(g_forceExt, ".GG", 4); break;
+			case 4: memcpy(g_forceExt, ".SG", 4); break;
+			default: g_forceExt[0] = 0; break;
+		}
+	}
+
 	char name[512];
 	const char *file = boot_file(name, sizeof name);
 	if (file == NULL)
@@ -385,15 +444,52 @@ ECL_EXPORT int Init(void)
 
 	/* pad type follows the loaded system, exactly like BizHawk keyed it off
 	 * the rom extension: Genesis carts get 3B/6B pads, 8-bit systems 2B */
-	size_t flen = strlen(file);
-	const char *fext = flen >= 3 ? file + flen - 3 : file;
 	int is8bit = 0;
 	{
 		char up[4] = { 0, 0, 0, 0 };
-		for (int i = 0; i < 3 && fext[i]; i++)
-			up[i] = fext[i] >= 'a' && fext[i] <= 'z' ? fext[i] - 32 : fext[i];
+		if (g_forceExt[0] != 0)
+			memcpy(up, g_forceExt, 4);
+		else
+		{
+			size_t flen = strlen(file);
+			const char *fext = flen >= 3 ? file + flen - 3 : file;
+			for (int i = 0; i < 3 && fext[i]; i++)
+				up[i] = fext[i] >= 'a' && fext[i] <= 'z' ? fext[i] - 32 : fext[i];
+		}
 		is8bit = memcmp("SMS", up, 3) == 0 || memcmp("GG", up + 1, 2) == 0
 			|| memcmp("SG", up + 1, 2) == 0;
+	}
+
+	/* A cartridge from the wrong console does not just look wrong - a Mega
+	 * Drive machine fed 8-bit code can spin inside a frame forever. Refuse
+	 * it here, where the message can name the problem. The Mega Drive
+	 * header's "SEGA" at 0x100 is the marker (an 8-bit cart has code
+	 * there). Discs and BIOS-only boots have no cart to check. */
+	if (g_forceExt[0] != 0 && g_discCount == 0)
+	{
+		FILE *cf = fopen(file, "rb");
+		if (cf != NULL)
+		{
+			char head[4] = { 0, 0, 0, 0 };
+			if (fseek(cf, 0x100, SEEK_SET) == 0)
+			{
+				if (fread(head, 1, 4, cf) != 4) head[0] = 0;
+			}
+			fclose(cf);
+			int looksMD = memcmp(head, "SEGA", 4) == 0;
+			if (looksMD && is8bit)
+			{
+				snprintf(g_loadError, sizeof g_loadError,
+					"'%s' is a Mega Drive cartridge; open it with the Mega Drive core package", file);
+				return 0;
+			}
+			if (!looksMD && !is8bit)
+			{
+				snprintf(g_loadError, sizeof g_loadError,
+					"'%s' is not a Mega Drive cartridge; open it with the package for its console", file);
+				return 0;
+			}
+		}
 	}
 	for (int i = 0; i < MAX_INPUTS; i++)
 		config.input[i].padtype = is8bit ? DEVICE_PAD2B : (sixButton ? DEVICE_PAD6B : DEVICE_PAD3B);
@@ -427,6 +523,14 @@ ECL_EXPORT int Init(void)
 
 	update_viewport();
 	clear_sram();
+
+	/* the wire this machine speaks (see the block above) */
+	if ((system_hw & SYSTEM_PBC) == SYSTEM_MD || system_hw == SYSTEM_MCD)
+		g_wire = WIRE_GENESIS;
+	else if (system_hw == SYSTEM_GG)
+		g_wire = WIRE_GG;
+	else
+		g_wire = WIRE_8BIT;
 
 	/* the player map: walk the devices GPGX chose, number them like the
 	 * author's GPGXControlConverter (sequential player per active device) */
@@ -483,25 +587,33 @@ ECL_EXPORT void FrameAdvance(uint64_t packed)
 		gen_reset(0);
 	}
 
-	for (int i = 0; i < MAX_DEVICES; i++)
 	{
-		int player = g_devPlayer[i];
-		if (player < 1 || player > 8)
-			continue;
-		uint16_t pad = 0;
-		const uint8_t *b = &g_buttons[BTN_PADS + (player - 1) * BTN_PER_PAD];
-		for (int k = 0; k < BTN_PER_PAD; k++)
-			if (b[k]) pad |= kPadBits[k];
-		input.pad[i] = pad;
+		const int base = wire_pad_base();
+		const int width = wire_pad_width();
+		const uint16_t *bits = g_wire == WIRE_GENESIS ? kPadBits : kPadBits8;
+		const int maxPlayer = g_wire == WIRE_GENESIS ? 8 : (g_wire == WIRE_GG ? 1 : 2);
+		for (int i = 0; i < MAX_DEVICES; i++)
+		{
+			int player = g_devPlayer[i];
+			if (player < 1 || player > maxPlayer)
+				continue;
+			uint16_t pad = 0;
+			const uint8_t *b = &g_buttons[base + (player - 1) * width];
+			for (int k = 0; k < width; k++)
+				if (b[k]) pad |= bits[k];
+			input.pad[i] = pad;
+		}
 	}
 
-	/* the SMS/SG pause button is a start-bit NMI on pad 0 (BizHawk's rule) */
-	if (g_buttons[2])
+	/* the SMS/SG pause button is a start-bit NMI on pad 0 (BizHawk's rule);
+	 * on the Genesis wire index 2 is inert, and the GG wire has no such
+	 * console button (its Start is a pad bit) */
+	if (g_wire == WIRE_8BIT && g_buttons[2])
 		input.pad[0] |= INPUT_START;
 
 	/* disc swapping, edge-triggered exactly like the author's BizHawk
 	 * frontend: index -1 is an open tray */
-	if (system_hw == SYSTEM_MCD && g_discCount > 0)
+	if (g_wire == WIRE_GENESIS && system_hw == SYSTEM_MCD && g_discCount > 0)
 	{
 		int newDisk = g_discIndex;
 		if (g_buttons[3] && !g_prevDiscBtn[0]) newDisk--;

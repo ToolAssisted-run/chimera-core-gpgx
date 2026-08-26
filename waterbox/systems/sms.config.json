@@ -1,6 +1,6 @@
 {
   "coreName": "Genesis Plus GX",
-  "systemId": "GEN",
+  "systemId": "SMS",
   "author": "Eke-Eke (Genesis Plus GX); chimera port by Sergio Martin",
   "url": "https://github.com/ToolAssisted-run/chimera-core-gpgx",
   "romFile": "rom",
@@ -17,8 +17,8 @@
     "_comment": "buffer CAPACITY; the live size comes from GetVideoWidth/Height per frame. Virtual dims are the NTSC 320x224 picture at its 292px aspect-corrected width.",
     "width": 1024,
     "height": 512,
-    "virtualWidth": 292,
-    "virtualHeight": 224,
+    "virtualWidth": 293,
+    "virtualHeight": 192,
     "vsyncNumerator": 53693175,
     "vsyncDenominator": 896040,
     "getBgra": "GetVideoBgra"
@@ -29,123 +29,31 @@
     "get": "GetAudio"
   },
   "input": {
-    "name": "Genesis Controller",
-    "_comment": "index order is the wire format: Power, Reset, Pause (the SMS/SG console button; inert on a Genesis), Previous/Next Disk (Sega CD swapping; the cd slot's list order is the swap order), then P1..P8 pads. Wider than 64, so everything rides the SetButton channel. Multitaps (teamplayer/wayplay) light up the higher players.",
+    "name": "SMS Controller",
+    "_comment": "index order is the wire format for this system's controller (the author's BizHawk definition): the console buttons, then its pads. The guest picks this wire from the machine it booted, so a package and its core always agree.",
     "buttons": [
       "Power",
       "Reset",
       "Pause",
-      "Previous Disk",
-      "Next Disk",
       "P1 Up",
       "P1 Down",
       "P1 Left",
       "P1 Right",
-      "P1 A",
-      "P1 B",
-      "P1 C",
-      "P1 Start",
-      "P1 X",
-      "P1 Y",
-      "P1 Z",
-      "P1 Mode",
+      "P1 Button 1",
+      "P1 Button 2",
       "P2 Up",
       "P2 Down",
       "P2 Left",
       "P2 Right",
-      "P2 A",
-      "P2 B",
-      "P2 C",
-      "P2 Start",
-      "P2 X",
-      "P2 Y",
-      "P2 Z",
-      "P2 Mode",
-      "P3 Up",
-      "P3 Down",
-      "P3 Left",
-      "P3 Right",
-      "P3 A",
-      "P3 B",
-      "P3 C",
-      "P3 Start",
-      "P3 X",
-      "P3 Y",
-      "P3 Z",
-      "P3 Mode",
-      "P4 Up",
-      "P4 Down",
-      "P4 Left",
-      "P4 Right",
-      "P4 A",
-      "P4 B",
-      "P4 C",
-      "P4 Start",
-      "P4 X",
-      "P4 Y",
-      "P4 Z",
-      "P4 Mode",
-      "P5 Up",
-      "P5 Down",
-      "P5 Left",
-      "P5 Right",
-      "P5 A",
-      "P5 B",
-      "P5 C",
-      "P5 Start",
-      "P5 X",
-      "P5 Y",
-      "P5 Z",
-      "P5 Mode",
-      "P6 Up",
-      "P6 Down",
-      "P6 Left",
-      "P6 Right",
-      "P6 A",
-      "P6 B",
-      "P6 C",
-      "P6 Start",
-      "P6 X",
-      "P6 Y",
-      "P6 Z",
-      "P6 Mode",
-      "P7 Up",
-      "P7 Down",
-      "P7 Left",
-      "P7 Right",
-      "P7 A",
-      "P7 B",
-      "P7 C",
-      "P7 Start",
-      "P7 X",
-      "P7 Y",
-      "P7 Z",
-      "P7 Mode",
-      "P8 Up",
-      "P8 Down",
-      "P8 Left",
-      "P8 Right",
-      "P8 A",
-      "P8 B",
-      "P8 C",
-      "P8 Start",
-      "P8 X",
-      "P8 Y",
-      "P8 Z",
-      "P8 Mode"
+      "P2 Button 1",
+      "P2 Button 2"
     ]
   },
   "lag": {
     "inputWasRead": "InputWasRead"
   },
   "extensions": {
-    ".md": "GEN",
-    ".gen": "GEN",
-    ".bin": "GEN",
-    ".smd": "GEN",
-    ".mdx": "GEN",
-    ".cue": "GEN",
-    ".iso": "GEN"
+    ".sms": "SMS"
   },
   "settings": [
     {
@@ -159,7 +67,7 @@
         "gg",
         "sg"
       ],
-      "default": "genesis",
+      "default": "sms",
       "description": "Which console this package's machine is. Each package ships one console, so this is pinned to it: the emulator picks its hardware from this, never from a file name (the frontend mounts a cartridge under a fixed name with no extension)."
     },
     {
@@ -168,16 +76,10 @@
       "type": "enum",
       "options": [
         "gamepad",
-        "none",
-        "mouse",
-        "xea1p",
-        "activator",
-        "teamplayer",
-        "wayplay",
-        "paddle"
+        "none"
       ],
       "default": "gamepad",
-      "description": "What is plugged into the console's left controller port. Some games expect a specific device. Only gamepads (and the multitaps' gamepads) are wired so far; the other devices land with the exotic-input milestone."
+      "description": "What is plugged into the console's first controller port."
     },
     {
       "name": "port2",
@@ -185,23 +87,10 @@
       "type": "enum",
       "options": [
         "gamepad",
-        "none",
-        "mouse",
-        "xea1p",
-        "activator",
-        "teamplayer",
-        "wayplay",
-        "paddle"
+        "none"
       ],
       "default": "gamepad",
-      "description": "What is plugged into the console's right controller port."
-    },
-    {
-      "name": "useSixButton",
-      "display": "Use Six Button Controllers",
-      "type": "bool",
-      "default": false,
-      "description": "Six button controllers instead of three button ones for any attached normal gamepad. Some games misbehave with six button controllers."
+      "description": "What is plugged into the console's second controller port."
     },
     {
       "name": "region",
@@ -230,13 +119,6 @@
       "description": "Overrides the video mode to 60Hz (NTSC) or 50Hz (PAL) regardless of the console region."
     },
     {
-      "name": "loadBios",
-      "display": "Load BIOS",
-      "type": "bool",
-      "default": false,
-      "description": "Boot through the system BIOS rom (the TMSS boot screen on a Genesis). Needs the matching firmware."
-    },
-    {
       "name": "overscan",
       "display": "Overscan",
       "type": "enum",
@@ -250,18 +132,16 @@
       "description": "Which overscan borders are rendered."
     },
     {
-      "name": "genesisFmSoundChip",
-      "display": "Genesis FM Sound Chip",
+      "name": "smsFmSoundChip",
+      "display": "SMS FM Sound Chip",
       "type": "enum",
       "options": [
-        "mameYM2612",
-        "mameASICYM3438",
-        "mameEnhancedYM3438",
-        "nukedYM2612",
-        "nukedYM3438"
+        "mame",
+        "disabled",
+        "nuked"
       ],
-      "default": "mameYM2612",
-      "description": "How the Mega Drive/Genesis FM synthesizer is emulated. MAME options are fast; Nuked options are cycle accurate and expensive. YM2612 is the Model 1 chip, YM3438 later revisions."
+      "default": "mame",
+      "description": "How the Mark III / Master System FM Sound Unit is emulated: MAME is fast, Nuked is cycle accurate and expensive, or no FM unit at all."
     },
     {
       "name": "filter",
@@ -320,33 +200,24 @@
       "description": "Percent. Only active when the filter is threeBand."
     },
     {
-      "name": "spritesAlwaysOnTop",
-      "display": "Sprites Always On Top",
+      "name": "loadBios",
+      "display": "Load BIOS",
       "type": "bool",
       "default": false,
-      "description": "Forces sprites to display on top of everything."
-    },
-    {
-      "name": "forceSram",
-      "display": "Force SRAM Mapping",
-      "type": "bool",
-      "default": false,
-      "description": "Maps 64KB of battery SRAM at $200000 for cartridges smaller than 2MB whose header does not declare any. A few games need it (the author's BizHawk port fed this from its game database)."
+      "description": "Boot through the system BIOS rom (the TMSS boot screen on a Genesis). Needs the matching firmware."
     }
   ],
   "firmware": [
     {
-      "id": "cdBiosUS",
-      "display": "Sega CD BIOS (USA)",
-      "description": "The USA Sega CD boot rom (128KB). Required to run a USA CD image; which console region a project uses is the region setting (autodetect keeps all three regions possible).",
-      "size": 131072,
-      "sha1": "F4F315ADCEF9B8FEB0364C21AB7F0EAF5457F3ED",
-      "name": "SCD_m1_us_110.bin",
-      "label": "Model 1 v1.10",
+      "id": "msBiosUS",
+      "display": "Master System BIOS (USA)",
+      "description": "The console boot rom. Only asked for when the loadBios setting is on.",
+      "size": 0,
       "requiredWhen": {
         "all": [
           {
-            "slot": "cd"
+            "setting": "loadBios",
+            "is": true
           },
           {
             "any": [
@@ -364,17 +235,15 @@
       }
     },
     {
-      "id": "cdBiosEU",
-      "display": "Mega CD BIOS (Europe)",
-      "description": "The European Mega CD boot rom (128KB).",
-      "size": 131072,
-      "sha1": "F891E0EA651E2232AF0C5C4CB46A0CAE2EE8F356",
-      "name": "MCD_eu_100.bin",
-      "label": "v1.00",
+      "id": "msBiosEU",
+      "display": "Master System BIOS (Europe)",
+      "description": "The console boot rom. Only asked for when the loadBios setting is on.",
+      "size": 0,
       "requiredWhen": {
         "all": [
           {
-            "slot": "cd"
+            "setting": "loadBios",
+            "is": true
           },
           {
             "any": [
@@ -392,17 +261,15 @@
       }
     },
     {
-      "id": "cdBiosJP",
-      "display": "Mega CD BIOS (Japan)",
-      "description": "The Japanese Mega CD boot rom (128KB).",
-      "size": 131072,
-      "sha1": "4846F448160059A7DA0215A5DF12CA160F26DD69",
-      "name": "MCD_jp_100p.bin",
-      "label": "v1.00p",
+      "id": "msBiosJP",
+      "display": "Master System BIOS (Japan)",
+      "description": "The console boot rom. Only asked for when the loadBios setting is on.",
+      "size": 0,
       "requiredWhen": {
         "all": [
           {
-            "slot": "cd"
+            "setting": "loadBios",
+            "is": true
           },
           {
             "any": [
@@ -421,16 +288,6 @@
             ]
           }
         ]
-      }
-    },
-    {
-      "id": "mdBios",
-      "display": "Genesis TMSS Boot ROM",
-      "description": "The Mega Drive / Genesis TMSS boot rom (2KB). Only asked for when the loadBios setting is on.",
-      "size": 2048,
-      "requiredWhen": {
-        "setting": "loadBios",
-        "is": true
       }
     }
   ]

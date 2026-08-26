@@ -97,10 +97,9 @@ no lock-on carts (config.lock_on=0).
   CD image. RISKS: miniBox VFS one-open-per-file vs cdd.c holding track FILE*
   open (and reopening the same bin per track); FILE* handles inside
   savestated guest memory. The gate decides what needs a shim.
-- **M6 - the other systems**: SMS/GG/SG-1000 packaging (one core.wbx, one
-  package per systemId with per-system button lists), exotic input devices
-  (mouse, lightgun, XE-1AP, activator, paddle - the axes channel), lock-on
-  carts if ever wanted.
+- **M6 - the other systems**: DONE for packaging (see the log). Still open:
+  exotic input devices (mouse, lightgun, XE-1AP, activator, paddle - the
+  axes channel), lock-on carts if ever wanted.
 - **M7 - tooling**: registers (M68K/Z80/S68K via m68k_get_reg), trace
   (HOOK_CPU exec ring buffer), VDP surfaces (nametables/patterns/sprites -
   this is where the static-removal patches return if needed).
@@ -163,3 +162,37 @@ edges call gpgx_reset(hard/soft).
   GetSaveDataFile* channel; both runners take --savedata-out and the gate
   compares the export trees across flavors. SaveRAM still starts empty
   every boot; a continue-from-save project flow is a chimera-side item.
+- 2026-08-26 (later): M6 PACKAGING DONE - the Master System, Game Gear and
+  SG-1000 now ship as their own packages. ONE core.wbx, four packages
+  (gpgx / gpgx-sms / gpgx-gg / gpgx-sg), because in chimera a package is a
+  machine PLUS the controller that machine has: a Master System project
+  must not offer a Genesis pad's X/Y/Z/Mode. waterbox/systems/ holds each
+  package's config, slots and keybinds (the author's BizHawk controller
+  definitions, shape for shape: SMS/SG = Power/Reset/Pause + 2 pads x
+  {U,D,L,R,B1,B2}; GG = Power/Reset + 1 pad x {U,D,L,R,B1,B2,Start}, its
+  Start being a pad bit while the Master System's Pause is a console
+  button - both are INPUT_START on pad 0 inside gpgx).
+  THE KEY DECISION: the guest picks its wire from `system_hw` AFTER
+  load_rom - the machine it actually booted - never from a setting that
+  could disagree with the package. Verified the remap changed no
+  emulation: the SMS movie's Main RAM digest is still dd9b10520296d6ac,
+  bit for bit, because Button 1/2 were always the same hardware bits as
+  B/C. Core gate 17/17 with the 8-bit legs now on the 8-bit wire.
+  The 8-bit packages declare their own firmware (MS_BIOS_US/EU/JP, GG_BIOS
+  behind loadBios + region) and drop the CD slot.
+  THE BUG THIS EXPOSED (and the fix): the frontend mounts a plain rom under
+  the fixed name "rom" with NO extension, while a project mounts real names.
+  gpgx picks its hardware from the file extension, so an SMS cartridge
+  opened through the frontend became a Mega Drive machine - and a Mega Drive
+  fed 8-bit code SPINS INSIDE A FRAME FOREVER (the engine and the GUI both
+  hung; --frames 0 completed, so it was the frame loop, not the load). The
+  fix is the author's own BizHawk design: the package passes the hardware
+  explicitly (BizHawk's romExtension parameter) instead of trusting a name.
+  Each package now pins a `systemHardware` setting (auto/genesis/sms/gg/sg),
+  and the guest feeds that to load_rom through load_archive's extension
+  out-param. A cartridge from the wrong console is now REFUSED at Init with
+  a message naming the problem (the Mega Drive header's "SEGA" at 0x100
+  decides), instead of hanging.
+  IDEA for chimera (not done): the engine could mount "rom.name" for plain
+  opens too, the way it already does for projects - then any core could
+  sniff the name. Not needed by any gate today.

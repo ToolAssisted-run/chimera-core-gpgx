@@ -1,0 +1,15 @@
+{
+  "_comment": "The core-declared file form for chimera's project wizard: a Master System project is one cartridge.",
+  "slots": [
+    {
+      "id": "cart",
+      "title": "Cartridge",
+      "min": 1,
+      "max": 1,
+      "formats": [
+        "sms"
+      ],
+      "help": "The Master System cartridge rom. The .sms extension is what tells the machine which hardware to be, so keep it truthful."
+    }
+  ]
+}

@@ -38,25 +38,26 @@ report() { printf "%-30s %-6s %s\n" "$1" "$2" "$3"; case "$2" in PASS) ok=$((ok+
 printf "%-30s %-6s %s\n" "Check" "Result" "Detail"
 printf "%-30s %-6s %s\n" "-----" "------" "------"
 
-# name rom sys ctl1 ctl2 movie(- = pad exercise)
+# name rom sys ctl1 ctl2 wire movie(- = pad exercise)
+# the wire is the PACKAGE's controller (one core.wbx, four packages)
 tests=(
-	"dinoRunner Dino-Runner.bin genesis gamepad3b none dinoRunner.playaround.sol"
-	"avuado avuado-1st-version.bin genesis gamepad3b none avuado.playaround.sol"
-	"drunkasilike drunkasilike.bin genesis gamepad3b gamepad3b drunkasilike.playaround.sol"
-	"maiNurse mai_nurse_v1.00.sms sms gamepad2b none maiNurse.playaround.sol"
-	"pitman Pitman.sg sg1000 gamegear2b none pitman.playaround.sol"
-	"exercise Dino-Runner.bin genesis gamepad3b none -"
+	"dinoRunner Dino-Runner.bin genesis gamepad3b none genesis dinoRunner.playaround.sol"
+	"avuado avuado-1st-version.bin genesis gamepad3b none genesis avuado.playaround.sol"
+	"drunkasilike drunkasilike.bin genesis gamepad3b gamepad3b genesis drunkasilike.playaround.sol"
+	"maiNurse mai_nurse_v1.00.sms sms gamepad2b none 8bit maiNurse.playaround.sol"
+	"pitman Pitman.sg sg1000 gamegear2b none 8bit pitman.playaround.sol"
+	"exercise Dino-Runner.bin genesis gamepad3b none genesis -"
 )
 
 for t in "${tests[@]}"; do
-	read -r name rom sys ctl1 ctl2 movie <<< "$t"
+	read -r name rom sys ctl1 ctl2 wire movie <<< "$t"
 
 	wd="$work/$name"
 	mkdir -p "$wd"
 	cp "$root/tests/roms/$rom" "$wd/"
 	printf '{"cart":["%s"]}' "$rom" > "$wd/slots"
 
-	args=(--sys "$sys" --ctl1 "$ctl1" --ctl2 "$ctl2")
+	args=(--sys "$sys" --ctl1 "$ctl1" --ctl2 "$ctl2" --wire "$wire")
 	if [ "$movie" = "-" ]; then
 		args+=(--frames 600 --exercise)
 	else
@@ -81,7 +82,7 @@ for t in "${tests[@]}"; do
 	# the machine - an idle run of the same length must differ
 	if [ "$movie" = "-" ]; then
 		"$nat/run-wbx" "$gst/core.wbx" "$wd" --sys "$sys" --ctl1 "$ctl1" --ctl2 "$ctl2" \
-			--frames "$frames" 2>/dev/null | digests > "$work/idle.txt"
+			--wire "$wire" --frames "$frames" 2>/dev/null | digests > "$work/idle.txt"
 		if cmp -s "$work/box.txt" "$work/idle.txt"; then
 			report "$name:input-shaped" FAIL "the pad exercise changed nothing"
 		else

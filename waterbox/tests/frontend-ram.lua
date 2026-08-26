@@ -9,6 +9,8 @@
 --   meta=<path to write result metadata (text)>
 --   shot=<optional path to write a screenshot>
 
+-- the primary RAM domain is named per system (the Genesis calls it 68K RAM,
+-- the 8-bit machines Main RAM); take whichever this machine has
 local DOMAIN = "68K RAM"
 
 local function writeAll(path, data)
@@ -44,9 +46,11 @@ for line in io.lines(jobPath) do
 end
 meta.metaPath = job.meta
 
-if emu.getsystemid() ~= "GEN" then
-	finish("ERROR", "wrong system id: " .. tostring(emu.getsystemid()))
+local sysid = emu.getsystemid()
+if sysid ~= "GEN" and sysid ~= "SMS" and sysid ~= "GG" and sysid ~= "SG" then
+	finish("ERROR", "wrong system id: " .. tostring(sysid))
 end
+if sysid ~= "GEN" then DOMAIN = "Main RAM" end
 if emu.getcorename() ~= "Genesis Plus GX" then
 	finish("ERROR", "wrong core: " .. tostring(emu.getcorename()))
 end

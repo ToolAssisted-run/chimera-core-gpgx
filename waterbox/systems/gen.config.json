@@ -149,20 +149,6 @@
   },
   "settings": [
     {
-      "name": "systemHardware",
-      "display": "Console Hardware",
-      "type": "enum",
-      "options": [
-        "auto",
-        "genesis",
-        "sms",
-        "gg",
-        "sg"
-      ],
-      "default": "genesis",
-      "description": "Which console this package's machine is. Each package ships one console, so this is pinned to it: the emulator picks its hardware from this, never from a file name (the frontend mounts a cartridge under a fixed name with no extension)."
-    },
-    {
       "name": "port1",
       "display": "Control Type - Left Port",
       "type": "enum",
@@ -248,6 +234,25 @@
       ],
       "default": "none",
       "description": "Which overscan borders are rendered."
+    },
+    {
+      "name": "ggExtra",
+      "display": "Game Gear Extended Screen",
+      "type": "bool",
+      "default": false,
+      "description": "Shows the Game Gear's extended screen area (256x192)."
+    },
+    {
+      "name": "smsFmSoundChip",
+      "display": "SMS FM Sound Chip",
+      "type": "enum",
+      "options": [
+        "mame",
+        "disabled",
+        "nuked"
+      ],
+      "default": "mame",
+      "description": "How the Mark III / Master System FM Sound Unit is emulated: MAME is fast, Nuked is cycle accurate and expensive, or no FM unit at all."
     },
     {
       "name": "genesisFmSoundChip",
