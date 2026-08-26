@@ -132,3 +132,12 @@ edges call gpgx_reset(hard/soft).
   savestate round-trip on every digest, and the pad-exercise leg proves
   input shapes the machine. Guest needed -std=c99 (musl's BSD uint typedef
   vs m68k.h's '#define uint').
+- 2026-08-26: M3+M4 DONE. waterbox.config (19 settings - all of BizHawk's
+  sync catalogue plus forceSram, minus backdropColor - 99-button wire,
+  lag group, GEN extensions), file_slots.json (cart; cd waits for M5),
+  default_keybinds.json (BizHawk's GPGX Genesis defaults),
+  build-package.sh -> chimera build/Cores/gpgx.zip (deterministic,
+  check-wbx clean). run-gate.sh grew vsync in the digest block and the
+  settings:forceVDP leg (14/14). tests/run-frontend.sh 3/3: 68K RAM
+  byte-identical to native inside Chimera, forceVDP=pal through the
+  frontend config matches ITS native reference, keybinds adopted.

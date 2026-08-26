@@ -57,6 +57,7 @@ static intfn g_InputWasRead;
 static intfn g_GetMemoryDomainCount;
 static ptrfn_i g_GetMemoryDomainName, g_GetMemoryDomainPtr;
 static i64fn_i g_GetMemoryDomainSize;
+static intfn g_GetVsyncNumerator, g_GetVsyncDenominator;
 static int g_rerecord;
 static membuf g_state;
 
@@ -87,6 +88,8 @@ static const int16_t *core_audio(int *n)
 }
 static int core_input_was_read(void) { return g_InputWasRead(); }
 static int core_domain_count(void) { return g_GetMemoryDomainCount(); }
+static int core_vsync_numerator(void) { return g_GetVsyncNumerator(); }
+static int core_vsync_denominator(void) { return g_GetVsyncDenominator(); }
 static const char *core_domain_name(int i) { return (const char *)g_GetMemoryDomainName(i); }
 static const uint8_t *core_domain_ptr(int i) { return (const uint8_t *)g_GetMemoryDomainPtr(i); }
 static int64_t core_domain_size(int i) { return g_GetMemoryDomainSize(i); }
@@ -173,6 +176,8 @@ int main(int argc, char **argv)
 	g_GetMemoryDomainName = (ptrfn_i)proc(g_host, "GetMemoryDomainName");
 	g_GetMemoryDomainPtr = (ptrfn_i)proc(g_host, "GetMemoryDomainPtr");
 	g_GetMemoryDomainSize = (i64fn_i)proc(g_host, "GetMemoryDomainSize");
+	g_GetVsyncNumerator = (intfn)proc(g_host, "GetVsyncNumerator");
+	g_GetVsyncDenominator = (intfn)proc(g_host, "GetVsyncDenominator");
 
 	struct gate_core c = {
 		.init = core_init,
@@ -186,6 +191,8 @@ int main(int argc, char **argv)
 		.domain_name = core_domain_name,
 		.domain_ptr = core_domain_ptr,
 		.domain_size = core_domain_size,
+		.vsync_numerator = core_vsync_numerator,
+		.vsync_denominator = core_vsync_denominator,
 		.pre_frame = core_pre_frame,
 	};
 

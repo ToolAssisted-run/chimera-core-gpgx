@@ -24,6 +24,8 @@ extern int GetVideoHeight(void);
 extern int16_t *GetAudio(void);
 extern int GetAudioSampleCount(void);
 extern int InputWasRead(void);
+extern int GetVsyncNumerator(void);
+extern int GetVsyncDenominator(void);
 extern int GetMemoryDomainCount(void);
 extern const char *GetMemoryDomainName(int i);
 extern uint8_t *GetMemoryDomainPtr(int i);
@@ -72,6 +74,8 @@ int main(int argc, char **argv)
 		.domain_name = GetMemoryDomainName,
 		.domain_ptr = domain_ptr,
 		.domain_size = GetMemoryDomainSize,
+		.vsync_numerator = GetVsyncNumerator,
+		.vsync_denominator = GetVsyncDenominator,
 		.pre_frame = NULL,
 	};
 	return gate_run(&c, &o);

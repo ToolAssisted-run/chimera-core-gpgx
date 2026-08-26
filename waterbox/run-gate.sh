@@ -30,7 +30,7 @@ done
 
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
-digests() { grep -E '^(frames|videoHash|audioHash|lagFrames|domain\[)'; }
+digests() { grep -E '^(frames|vsync|videoHash|audioHash|lagFrames|domain\[)'; }
 
 ok=0
 failed=0
@@ -98,6 +98,31 @@ for t in "${tests[@]}"; do
 		report "$name:savestate" FAIL "$(diff "$work/box.txt" "$work/rr.txt" | tr '\n' ' ' | head -c 120)"
 	fi
 done
+
+# ---- settings leg: a declared setting must reach the guest and shape the
+# machine identically in both flavors. forceVDP=pal flips the vertical rate
+# (the vsync= line) and the whole timing of the run.
+wd="$work/palset"
+mkdir -p "$wd"
+cp "$root/tests/roms/Dino-Runner.bin" "$wd/"
+printf '{"cart":["Dino-Runner.bin"]}' > "$wd/slots"
+printf '{"forceVDP":"pal"}' > "$wd/settings"
+args=(--frames 300 --exercise)
+"$nat/run-native" "$wd" "${args[@]}" 2>/dev/null | digests > "$work/palnat.txt"
+"$nat/run-wbx" "$gst/core.wbx" "$wd" "${args[@]}" 2>/dev/null | digests > "$work/palbox.txt"
+if ! cmp -s "$work/palnat.txt" "$work/palbox.txt"; then
+	report "settings:forceVDP" FAIL "$(diff "$work/palnat.txt" "$work/palbox.txt" | tr '\n' ' ' | head -c 120)"
+elif ! grep -q '^vsync=53203424/1070460$' "$work/palbox.txt"; then
+	report "settings:forceVDP" FAIL "vsync did not flip to PAL: $(grep '^vsync=' "$work/palbox.txt")"
+else
+	rm "$wd/settings"
+	"$nat/run-wbx" "$gst/core.wbx" "$wd" "${args[@]}" 2>/dev/null | digests > "$work/ntsc.txt"
+	if cmp -s "$work/palbox.txt" "$work/ntsc.txt"; then
+		report "settings:forceVDP" FAIL "pal and ntsc runs are identical"
+	else
+		report "settings:forceVDP" PASS "forceVDP=pal reached the guest, vsync + digests flipped"
+	fi
+fi
 
 echo ""
 echo "$ok ok, $failed failed"
