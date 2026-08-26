@@ -64,6 +64,9 @@ c_args = ['-specs', '$sr/lib/musl-gcc.specs', '-fvisibility=hidden', '-mcmodel=l
 c_link_args = ['-specs', '$sr/lib/musl-gcc.specs']
 EOF
 
-meson setup "$root/build/meson-guest" "$root" --cross-file "$cross" "$@" 2>/dev/null \
-	|| meson setup --reconfigure "$root/build/meson-guest" "$root" --cross-file "$cross" "$@"
+# -Dminibox_dir explicitly: meson.build's fallback is a path relative to the
+# checkout, which only resolves when this repo sits BESIDE a chimera checkout -
+# not when it is a submodule inside one (extern/cores/*)
+meson setup "$root/build/meson-guest" "$root" --cross-file "$cross" "-Dminibox_dir=$mb" "$@" 2>/dev/null \
+	|| meson setup --reconfigure "$root/build/meson-guest" "$root" --cross-file "$cross" "-Dminibox_dir=$mb" "$@"
 echo "guest build configured: ninja -C build/meson-guest"

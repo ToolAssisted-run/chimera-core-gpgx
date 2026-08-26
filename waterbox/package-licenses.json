@@ -1,0 +1,23 @@
+{
+  "package": "gpgx",
+  "effectiveTerms": "Genesis Plus GX terms (non-commercial), over MIT integration",
+  "commercialUse": "prohibited",
+  "note": "The built core combines this repository's MIT integration with Genesis Plus GX, whose core code is free for NON-COMMERCIAL use only. The package as a whole therefore may not be redistributed commercially.",
+  "components": [
+    {
+      "name": "chimera-core-gpgx (integration)",
+      "license": "MIT, and Genesis Plus GX terms for patches/",
+      "url": "https://github.com/ToolAssisted-run/chimera-core-gpgx",
+      "commit": "{selfCommit}",
+      "file": "LICENSE"
+    },
+    {
+      "name": "Genesis Plus GX",
+      "license": "Genesis Plus GX licence (non-commercial), with MAME, LGPL and GPL parts",
+      "url": "https://github.com/ekeeke/Genesis-Plus-GX",
+      "commit": "{submodule:extern/Genesis-Plus-GX}",
+      "file": "extern/Genesis-Plus-GX/LICENSE.txt",
+      "sourceUrl": "https://github.com/ekeeke/Genesis-Plus-GX/archive/{commit}.tar.gz"
+    }
+  ]
+}
