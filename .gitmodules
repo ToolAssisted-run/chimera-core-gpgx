@@ -1,0 +1,3 @@
+[submodule "extern/Genesis-Plus-GX"]
+	path = extern/Genesis-Plus-GX
+	url = https://github.com/ekeeke/Genesis-Plus-GX.git

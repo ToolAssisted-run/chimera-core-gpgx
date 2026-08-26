@@ -1,0 +1,131 @@
+diff --git a/core/cart_hw/eeprom_i2c.c b/core/cart_hw/eeprom_i2c.c
+index e696ad3..e614342 100644
+--- a/core/cart_hw/eeprom_i2c.c
++++ b/core/cart_hw/eeprom_i2c.c
+@@ -886,3 +886,8 @@ static void mapper_i2c_jcart_init(void)
+   eeprom_i2c.sda_in_bit  = 0;
+   eeprom_i2c.sda_out_bit = 7;
+ }
++
++int eeprom_i2c_get_size(void)
++{
++  return eeprom_i2c.spec.size_mask + 1;
++}
+diff --git a/core/cart_hw/sms_cart.c b/core/cart_hw/sms_cart.c
+index 47509df..938ef74 100644
+--- a/core/cart_hw/sms_cart.c
++++ b/core/cart_hw/sms_cart.c
+@@ -2374,3 +2374,13 @@ static unsigned char read_mapper_none(unsigned int address)
+   /* return last fetched z80 instruction / data */
+   return z80_last_fetch;
+ }
++
++int sms_cart_is_codies(void)
++{
++  return cart_rom.mapper == MAPPER_CODIES;
++}
++
++int sms_cart_bootrom_size(void)
++{
++  return bios_rom.pages << (bios_rom.mapper == MAPPER_SEGA ? 14 : 10);
++}
+diff --git a/core/cart_hw/sram.c b/core/cart_hw/sram.c
+index b4d7d06..7cf9708 100644
+--- a/core/cart_hw/sram.c
++++ b/core/cart_hw/sram.c
+@@ -40,6 +40,7 @@
+ #include "flash_cfi.h"
+ 
+ T_SRAM sram;
++extern int cinterface_force_sram;
+ 
+ /****************************************************************************
+  * A quick guide to external RAM on the Genesis
+@@ -249,6 +250,7 @@ void sram_init(void)
+     /* by default, enable backup RAM for ROM smaller than 2MB */
+     else if (cart.romsize <= 0x200000)
+     {
++      if (!cinterface_force_sram) return; /* the frontend controls this default (forceSram setting) */
+       /* 64KB static RAM mapped to $200000-$20ffff */
+       sram.start = 0x200000;
+       sram.end = 0x20ffff;
+diff --git a/core/io_ctrl.c b/core/io_ctrl.c
+index 3434327..a4cd6ab 100644
+--- a/core/io_ctrl.c
++++ b/core/io_ctrl.c
+@@ -466,6 +466,10 @@ unsigned int io_68k_read(unsigned int offset)
+         D1 : D1 pin input level (1=high, 0=low)
+         D0 : D0 pin input level (1=high, 0=low)
+       */
++#ifdef CHIMERA_HOOKS
++      real_input_callback();
++#endif
++
+       unsigned int mask = 0x80 | io_reg[offset + 3];
+       unsigned int data = port[offset-1].data_r();
+       return (io_reg[offset] & mask) | (data & ~mask);
+@@ -545,6 +549,10 @@ unsigned int io_z80_read(unsigned int offset)
+   /* I/O ports */
+   if (offset)
+   {
++#ifdef CHIMERA_HOOKS
++    real_input_callback();
++#endif
++
+    /* 
+      Bit  Function
+      --------------
+@@ -648,6 +656,10 @@ void io_gg_write(unsigned int offset, unsigned int data)
+ 
+ unsigned int io_gg_read(unsigned int offset)
+ {
++#ifdef CHIMERA_HOOKS
++  real_input_callback();
++#endif
++
+   switch (offset)
+   {
+     case 0: /* Mode Register */
+diff --git a/core/m68k/m68kconf.h b/core/m68k/m68kconf.h
+index b1f4c9b..2b46aa9 100644
+--- a/core/m68k/m68kconf.h
++++ b/core/m68k/m68kconf.h
+@@ -70,7 +70,7 @@
+    on other memory access if needed.
+  * NOTE: This is only emulated properly for 68000 mode.
+  */
+-#define M68K_CHECK_PC_ADDRESS_ERROR OPT_OFF
++#define M68K_CHECK_PC_ADDRESS_ERROR OPT_ON
+ 
+ 
+ /* ----------------------------- COMPATIBILITY ---------------------------- */
+diff --git a/core/m68k/s68kcpu.c b/core/m68k/s68kcpu.c
+index 6d2dde1..c97d53f 100644
+--- a/core/m68k/s68kcpu.c
++++ b/core/m68k/s68kcpu.c
+@@ -253,6 +253,12 @@ void s68k_run(unsigned int cycles)
+     /* Set the address space for reads */
+     m68ki_use_data_space() /* auto-disable (see m68kcpu.h) */
+ 
++    #ifdef HOOK_CPU
++        /* Trigger execution hook */
++        if (UNLIKELY(cpu_hook))
++          cpu_hook(HOOK_M68K_E, 0, REG_PC, 0);
++    #endif
++
+     /* Save current instruction PC */
+     s68k.prev_pc = REG_PC;
+ 
+diff --git a/core/vdp_render.c b/core/vdp_render.c
+index ae75fd9..3856952 100644
+--- a/core/vdp_render.c
++++ b/core/vdp_render.c
+@@ -425,6 +425,8 @@ INLINE void WRITE_LONG(void *address, uint32 data)
+     if (temp & 0x0f) \
+     { \
+       temp |= (lb[i] << 8); \
++      if (config.sprites_always_on_top) \
++        ATTR |= 0x40; \
+       lb[i] = TABLE[temp | ATTR]; \
+       status |= ((temp & 0x8000) >> 10); \
+     } \

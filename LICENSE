@@ -1,0 +1,47 @@
+This repository is licensed as follows:
+
+- The integration layer and everything else original to this repository
+  (waterbox/*.c and *.h except where noted, the build scripts, meson files,
+  tests/ harness files, docs/) is under the MIT License below. Parts of
+  waterbox/cinterface.c and waterbox/osd.h descend from the author's own
+  BizHawk GPGX port (TASEmulators/BizHawk, MIT).
+
+- patches/ contains modifications to Genesis Plus GX source files and is
+  under Genesis Plus GX's own licensing terms.
+
+- Genesis Plus GX is vendored unmodified as the submodule
+  extern/Genesis-Plus-GX under its own licenses (see its LICENSE.txt: the
+  core is largely Charles MacDonald's and Eke-Eke's code, free for
+  NON-COMMERCIAL use; the M68K core is Karl Stenerud's Musashi; other parts
+  carry MAME, LGPL and GPL terms).
+
+- waterbox/util/scrc32.{c,h} is the zlib crc32 (zlib license), via the
+  author's BizHawk port.
+
+- BUILT ARTIFACTS (core.wbx and the core package) combine this repository's
+  code with Genesis Plus GX and inherit its terms - in particular the
+  NON-COMMERCIAL restriction on the emulation core.
+
+----------------------------------------------------------------------------
+
+MIT License
+
+Copyright (c) 2026 Sergio Martin
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.

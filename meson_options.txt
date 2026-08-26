@@ -1,0 +1,2 @@
+option('minibox_dir', type: 'string', value: '',
+  description: 'Path to a miniBox checkout (defaults to ../chimera/extern/miniBox). Provides the guest kit headers for both builds and libminiboxhost for run-wbx.')
