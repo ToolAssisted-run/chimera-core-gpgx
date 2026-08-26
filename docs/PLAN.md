@@ -163,11 +163,14 @@ edges call gpgx_reset(hard/soft).
   compares the export trees across flavors. SaveRAM still starts empty
   every boot; a continue-from-save project flow is a chimera-side item.
 - 2026-08-26 (later): M6 PACKAGING DONE - the Master System, Game Gear and
-  SG-1000 now ship as their own packages. ONE core.wbx, four packages
-  (gpgx / gpgx-sms / gpgx-gg / gpgx-sg), because in chimera a package is a
-  machine PLUS the controller that machine has: a Master System project
-  must not offer a Genesis pad's X/Y/Z/Mode. waterbox/systems/ holds each
-  package's config, slots and keybinds (the author's BizHawk controller
+  SG-1000 joined the package. ONE core.wbx, ONE package, four MACHINES
+  declared in waterbox.config (the `systemHardware` setting picks one, so
+  the project pins it and the movie cites it). It shipped briefly as four
+  packages - gpgx / gpgx-sms / gpgx-gg / gpgx-sg - which was wrong twice
+  over: four copies of one binary, and all four registering the same core
+  name, so installing them together silently kept only the first.
+  waterbox.config holds each machine's controller, picture, extensions and
+  narrowed settings (the author's BizHawk controller
   definitions, shape for shape: SMS/SG = Power/Reset/Pause + 2 pads x
   {U,D,L,R,B1,B2}; GG = Power/Reset + 1 pad x {U,D,L,R,B1,B2,Start}, its
   Start being a pad bit while the Master System's Pause is a console

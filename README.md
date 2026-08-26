@@ -18,11 +18,13 @@ patch set is ~40 lines (see `patches/` and `docs/PLAN.md`). There is no
 host-side CD plumbing at all - disc images (.cue/.bin/.iso) are mounted raw
 into the guest filesystem and upstream's own stdio `cdStream` reads them.
 
-**One core, four packages.** The same `core.wbx` ships as `gpgx` (Mega
-Drive / Genesis and Sega CD), `gpgx-sms`, `gpgx-gg` and `gpgx-sg`, because
-a Chimera package is a machine plus the controller that machine has - a
-Master System project should not be offered a Genesis pad's X/Y/Z. The
-guest picks the matching wire from the machine it actually booted.
+**One core, four machines, one package.** `gpgx` is a Mega Drive / Genesis
+(with Sega CD), a Master System, a Game Gear and an SG-1000. The package
+declares all four as machines and the `systemHardware` setting picks one, so
+a project pins the machine and a movie cites it; the controller, the picture,
+the file extensions and the settings that make sense follow from the choice -
+a Master System project is never offered a Genesis pad's X/Y/Z. The guest
+picks its matching wire from the machine it actually booted.
 
 Status and plan: `docs/PLAN.md`.
 

@@ -3,7 +3,10 @@
 # checkout as build/Cores/gpgx.zip.
 #
 # A package is core.wbx (fixed name) + waterbox.config + default_keybinds.json,
-# loaded through chimera's one built-in generic adapter.
+# loaded through chimera's one built-in generic adapter. ONE package: the same
+# core.wbx is a Mega Drive, a Master System, a Game Gear and an SG-1000, and
+# waterbox.config declares all four as machines (the systemHardware setting picks
+# one). It used to ship as four packages of the same binary.
 #
 # Usage: ./build-package.sh [-m <miniBox dir>] [-r <chimera root>]
 set -eu
@@ -34,26 +37,18 @@ chimera_root="$(cd "$chimera_root" && pwd)"
 ninja -C "$root/build/meson-guest" core.wbx
 sh "$mb/source/guest/check-wbx.sh" "$root/build/meson-guest/core.wbx"
 
-# ONE core.wbx, one package per system it emulates: a package is a machine
-# plus the controller that machine has, so the Master System's package must
-# not offer a Genesis pad's X/Y/Z. waterbox/systems/ holds each package's
-# config, slots and keybinds; the guest picks its wire from the machine it
-# actually booted (see waterbox/cinterface.c).
+# One package, four machines. Each machine's controller, picture, extensions and
+# narrowed settings are declared in waterbox.config; the guest picks its wire from
+# the machine it actually booted (see waterbox/cinterface.c).
 build_one() {
-	pkg="$1"; key="$2"
+	pkg="$1"
 	staging="$root/build/package-staging/$pkg"
 	rm -rf "$staging"
 	mkdir -p "$staging"
 	cp "$root/build/meson-guest/core.wbx" "$staging/core.wbx"
-	if [ "$key" = "gen" ]; then
-		cp "$here/waterbox.config" "$staging/waterbox.config"
-		cp "$here/default_keybinds.json" "$staging/default_keybinds.json"
-		cp "$here/file_slots.json" "$staging/file_slots.json"
-	else
-		cp "$here/systems/$key.config.json" "$staging/waterbox.config"
-		cp "$here/systems/$key.keybinds.json" "$staging/default_keybinds.json"
-		cp "$here/systems/$key.slots.json" "$staging/file_slots.json"
-	fi
+	cp "$here/waterbox.config" "$staging/waterbox.config"
+	cp "$here/default_keybinds.json" "$staging/default_keybinds.json"
+	cp "$here/file_slots.json" "$staging/file_slots.json"
 }
 
 # ---- version (see chimera docs: commit-as-version, stamped by CD) ----
@@ -67,8 +62,8 @@ if [ -z "$core_version" ]; then
 	fi
 fi
 stamp_and_zip() {
-	pkg="$1"; key="$2"
-	build_one "$pkg" "$key"
+	pkg="$1"
+	build_one "$pkg"
 	staging="$root/build/package-staging/$pkg"
 	zip_path="$cores_dir/$pkg.zip"
 	rm -f "$zip_path"
@@ -148,11 +143,7 @@ PYEOF
 cores_dir="$chimera_root/build/Cores"
 mkdir -p "$cores_dir"
 
-# one package per emulated system, all from the same core.wbx
-stamp_and_zip gpgx gen
-stamp_and_zip gpgx-sms sms
-stamp_and_zip gpgx-gg gg
-stamp_and_zip gpgx-sg sg
+stamp_and_zip gpgx
 
 for cache in "$chimera_root"/build/CoreCache/gpgx*; do
 	[ -d "$cache" ] && rm -rf "$cache" || true

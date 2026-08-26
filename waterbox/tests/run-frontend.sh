@@ -146,13 +146,13 @@ else
 	report "keybinds" FAIL "run did not report OK (see tests/work/keys.log)"
 fi
 
-# --- the 8-bit packages: one core.wbx, one package per system. The Master
-# System package must open a .sms project as an SMS machine, with ITS
-# controller (six buttons, no X/Y/Z) and its own RAM matching native.
-smspkg="$chimera_root/build/Cores/gpgx-sms.zip"
+# --- the 8-bit machines, from the SAME package. One core.wbx is four machines;
+# opening a .sms with it must be a Master System, with ITS controller (two
+# buttons and Pause, no X/Y/Z) and its own RAM matching native.
+smspkg="$chimera_root/build/Cores/gpgx.zip"
 smsrom="$root/tests/roms/mai_nurse_v1.00.sms"
 if [ ! -f "$smspkg" ]; then
-	report "sms:frontend" SKIP "gpgx-sms.zip not installed"
+	report "sms:frontend" SKIP "gpgx.zip not installed"
 else
 	python3 "$here/settings-config.py" "$config" "$work/config.sms.ini" '{}'
 	python3 - "$work/config.sms.ini" <<'PYSYS'
@@ -180,7 +180,7 @@ PYSYS
 	python3 "$here/forget-controller.py" "$work/config.sms.ini" "$work/config.smskeys.ini" "SMS Controller"
 	if run_frontend "smskeys" "$work/config.smskeys.ini" 1 "" "$smspkg" "$smsrom"; then
 		if python3 "$here/check-keybinds.py" "$work/config.smskeys.ini" \
-			"$wb/systems/sms.keybinds.json" "SMS Controller" > "$work/smskeys.txt" 2>&1; then
+			"$wb/default_keybinds.json" "SMS Controller" > "$work/smskeys.txt" 2>&1; then
 			report "sms:keybinds" PASS "$(cat "$work/smskeys.txt")"
 		else
 			report "sms:keybinds" FAIL "$(head -1 "$work/smskeys.txt")"

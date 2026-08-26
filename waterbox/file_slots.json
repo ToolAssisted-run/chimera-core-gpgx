@@ -1,5 +1,5 @@
 {
-  "_comment": "The core-declared file form for chimera's project wizard. A project is a cartridge OR a Sega CD disc set - the exposedWhen conditions make the two slots mutually exclusive, and exactly one must be filled (an unexposed slot's min does not bind).",
+  "_comment": "The core-declared file form for chimera's project wizard. Every machine takes one cartridge; the Mega Drive alone can take Sega CD discs instead - the exposedWhen conditions make the two mutually exclusive, and hide the drive entirely on a machine that has none.",
   "slots": [
     {
       "id": "cart",
@@ -11,9 +11,12 @@
         "gen",
         "bin",
         "smd",
-        "mdx"
+        "mdx",
+        "sms",
+        "gg",
+        "sg"
       ],
-      "help": "The Mega Drive / Genesis cartridge rom. The file extension picks the hardware, so keep it truthful.",
+      "help": "The cartridge rom for the machine chosen with the core: .md/.gen/.bin/.smd/.mdx for a Mega Drive, .sms, .gg or .sg for the others. The machine comes from the project, not from the file name, and a cartridge for another console is refused at load.",
       "exposedWhen": {
         "not": {
           "slot": "cd"
@@ -32,9 +35,17 @@
       ],
       "help": "Sega CD / Mega CD disc images: a .cue sheet whose referenced track files join the project automatically, or a raw single-track .iso/.bin dump. The first disc is in the drive at boot; the order here is the swap order used by the Previous/Next Disk inputs. Needs the matching region's CD BIOS on the firmware page.",
       "exposedWhen": {
-        "not": {
-          "slot": "cart"
-        }
+        "all": [
+          {
+            "not": {
+              "slot": "cart"
+            }
+          },
+          {
+            "setting": "systemHardware",
+            "is": "genesis"
+          }
+        ]
       }
     }
   ]
