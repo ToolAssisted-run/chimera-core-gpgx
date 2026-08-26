@@ -730,3 +730,64 @@ ECL_EXPORT int GetMemoryDomainWritable(int i)
 		return 0;
 	return w;
 }
+
+/* ---- savedata export (chimera's persistent-data channel) ----
+ * SaveRAM starts empty every boot (clear_sram); this group is the way OUT:
+ * the cartridge's battery SRAM, or on a Sega CD the internal backup RAM and
+ * the backup RAM cartridge. Chimera's Export Save Data menu writes these
+ * files; a future continue-from-save project feeds them back in. */
+
+static const char *savedata_entry(int32_t i, uint8_t **buf, int64_t *size)
+{
+	if (system_hw == SYSTEM_MCD)
+	{
+		if (i == 0)
+		{
+			*buf = scd.bram;
+			*size = 0x2000;
+			return "InternalBackupRAM.brm";
+		}
+		if (i == 1 && scd.cartridge.id)
+		{
+			*buf = scd.cartridge.area;
+			*size = scd.cartridge.mask + 1;
+			return "CartBackupRAM.brm";
+		}
+		return NULL;
+	}
+	/* the one Codemasters SRAM cart has no battery (BizHawk's rule) */
+	if (i == 0 && sram.on && !sms_cart_is_codies())
+	{
+		*buf = sram.sram;
+		*size = saveramsize();
+		return "SRAM.sav";
+	}
+	return NULL;
+}
+
+ECL_EXPORT int32_t GetSaveDataFileCount(void)
+{
+	uint8_t *b;
+	int64_t n;
+	int32_t count = 0;
+	while (savedata_entry(count, &b, &n) != NULL) count++;
+	return count;
+}
+ECL_EXPORT const char *GetSaveDataFileName(int32_t i)
+{
+	uint8_t *b;
+	int64_t n;
+	return savedata_entry(i, &b, &n);
+}
+ECL_EXPORT int64_t GetSaveDataFileSize(int32_t i)
+{
+	uint8_t *b = NULL;
+	int64_t n = 0;
+	return savedata_entry(i, &b, &n) != NULL ? n : 0;
+}
+ECL_EXPORT const uint8_t *GetSaveDataFileBuffer(int32_t i)
+{
+	uint8_t *b = NULL;
+	int64_t n = 0;
+	return savedata_entry(i, &b, &n) != NULL ? b : NULL;
+}

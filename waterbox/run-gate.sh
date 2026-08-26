@@ -137,6 +137,25 @@ else
 	fi
 fi
 
+# ---- savedata export: the persistent-data channel's files must be identical
+# from both flavors, for the cart's battery SRAM and for the Sega CD's
+# backup rams (the cdsmoke work dir is still around)
+wd="$work/dinoRunner"
+mkdir -p "$work/sd.nat" "$work/sd.box" "$work/sd.cd.nat" "$work/sd.cd.box"
+"$nat/run-native" "$wd" --frames 120 --exercise --savedata-out "$work/sd.nat" >/dev/null 2>&1
+"$nat/run-wbx" "$gst/core.wbx" "$wd" --frames 120 --exercise --savedata-out "$work/sd.box" >/dev/null 2>&1
+"$nat/run-native" "$work/cdsmoke" --sys segacd --frames 120 --savedata-out "$work/sd.cd.nat" >/dev/null 2>&1
+"$nat/run-wbx" "$gst/core.wbx" "$work/cdsmoke" --sys segacd --frames 120 --savedata-out "$work/sd.cd.box" >/dev/null 2>&1
+nc="$(find "$work/sd.nat" "$work/sd.cd.nat" -type f | wc -l)"
+if [ "$nc" -eq 0 ]; then
+	report "savedata:export" FAIL "the native runs exported no files"
+elif diff -r "$work/sd.nat" "$work/sd.box" >/dev/null 2>&1 \
+	&& diff -r "$work/sd.cd.nat" "$work/sd.cd.box" >/dev/null 2>&1; then
+	report "savedata:export" PASS "$nc files (cart SRAM + CD backup rams), native == sandbox"
+else
+	report "savedata:export" FAIL "export trees differ"
+fi
+
 # ---- settings leg: a declared setting must reach the guest and shape the
 # machine identically in both flavors. forceVDP=pal flips the vertical rate
 # (the vsync= line) and the whole timing of the run.

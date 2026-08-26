@@ -157,3 +157,9 @@ edges call gpgx_reset(hard/soft).
   the Sega CD ones; 5 homebrews already PASS, savestart entries stay
   skipped - quickerGPGX-format states). CI workflow added (core gate +
   manifest + frontend on public runners).
+- 2026-08-26: savedata export group done (17/17 + frontend 3/3): the cart's
+  battery SRAM ("SRAM.sav") and the Sega CD backup rams
+  ("InternalBackupRAM.brm" / "CartBackupRAM.brm") ride chimera's
+  GetSaveDataFile* channel; both runners take --savedata-out and the gate
+  compares the export trees across flavors. SaveRAM still starts empty
+  every boot; a continue-from-save project flow is a chimera-side item.

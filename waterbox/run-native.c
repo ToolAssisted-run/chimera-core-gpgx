@@ -30,6 +30,10 @@ extern int GetMemoryDomainCount(void);
 extern const char *GetMemoryDomainName(int i);
 extern uint8_t *GetMemoryDomainPtr(int i);
 extern int64_t GetMemoryDomainSize(int i);
+extern int32_t GetSaveDataFileCount(void);
+extern const char *GetSaveDataFileName(int32_t i);
+extern int64_t GetSaveDataFileSize(int32_t i);
+extern const uint8_t *GetSaveDataFileBuffer(int32_t i);
 
 static void frame(void) { FrameAdvance(0); }
 static const uint32_t *video(int *w, int *h)
@@ -76,6 +80,10 @@ int main(int argc, char **argv)
 		.domain_size = GetMemoryDomainSize,
 		.vsync_numerator = GetVsyncNumerator,
 		.vsync_denominator = GetVsyncDenominator,
+		.savedata_count = GetSaveDataFileCount,
+		.savedata_name = GetSaveDataFileName,
+		.savedata_size = GetSaveDataFileSize,
+		.savedata_buffer = GetSaveDataFileBuffer,
 		.pre_frame = NULL,
 	};
 	return gate_run(&c, &o);

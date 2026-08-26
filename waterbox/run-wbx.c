@@ -43,6 +43,10 @@ typedef uintptr_t (MB_GUEST_ABI *ptrfn)(void);
 typedef uintptr_t (MB_GUEST_ABI *ptrfn_i)(int);
 typedef int (MB_GUEST_ABI *intfn_i)(int);
 typedef int64_t (MB_GUEST_ABI *i64fn_i)(int);
+typedef int32_t (MB_GUEST_ABI *i32fn)(void);
+typedef int32_t (MB_GUEST_ABI *i32fn_i)(int32_t);
+typedef uintptr_t (MB_GUEST_ABI *ptrfn_i32)(int32_t);
+typedef int64_t (MB_GUEST_ABI *i64fn_i32)(int32_t);
 
 static mb_host *g_host;
 static intfn g_Init;
@@ -58,6 +62,9 @@ static intfn g_GetMemoryDomainCount;
 static ptrfn_i g_GetMemoryDomainName, g_GetMemoryDomainPtr;
 static i64fn_i g_GetMemoryDomainSize;
 static intfn g_GetVsyncNumerator, g_GetVsyncDenominator;
+static i32fn g_GetSaveDataFileCount;
+static ptrfn_i32 g_GetSaveDataFileName, g_GetSaveDataFileBuffer;
+static i64fn_i32 g_GetSaveDataFileSize;
 static int g_rerecord;
 static membuf g_state;
 
@@ -90,6 +97,10 @@ static int core_input_was_read(void) { return g_InputWasRead(); }
 static int core_domain_count(void) { return g_GetMemoryDomainCount(); }
 static int core_vsync_numerator(void) { return g_GetVsyncNumerator(); }
 static int core_vsync_denominator(void) { return g_GetVsyncDenominator(); }
+static int32_t core_savedata_count(void) { return g_GetSaveDataFileCount(); }
+static const char *core_savedata_name(int32_t i) { return (const char *)g_GetSaveDataFileName(i); }
+static int64_t core_savedata_size(int32_t i) { return g_GetSaveDataFileSize(i); }
+static const uint8_t *core_savedata_buffer(int32_t i) { return (const uint8_t *)g_GetSaveDataFileBuffer(i); }
 static const char *core_domain_name(int i) { return (const char *)g_GetMemoryDomainName(i); }
 static const uint8_t *core_domain_ptr(int i) { return (const uint8_t *)g_GetMemoryDomainPtr(i); }
 static int64_t core_domain_size(int i) { return g_GetMemoryDomainSize(i); }
@@ -178,6 +189,10 @@ int main(int argc, char **argv)
 	g_GetMemoryDomainSize = (i64fn_i)proc(g_host, "GetMemoryDomainSize");
 	g_GetVsyncNumerator = (intfn)proc(g_host, "GetVsyncNumerator");
 	g_GetVsyncDenominator = (intfn)proc(g_host, "GetVsyncDenominator");
+	g_GetSaveDataFileCount = (i32fn)proc(g_host, "GetSaveDataFileCount");
+	g_GetSaveDataFileName = (ptrfn_i32)proc(g_host, "GetSaveDataFileName");
+	g_GetSaveDataFileSize = (i64fn_i32)proc(g_host, "GetSaveDataFileSize");
+	g_GetSaveDataFileBuffer = (ptrfn_i32)proc(g_host, "GetSaveDataFileBuffer");
 
 	struct gate_core c = {
 		.init = core_init,
@@ -193,6 +208,10 @@ int main(int argc, char **argv)
 		.domain_size = core_domain_size,
 		.vsync_numerator = core_vsync_numerator,
 		.vsync_denominator = core_vsync_denominator,
+		.savedata_count = core_savedata_count,
+		.savedata_name = core_savedata_name,
+		.savedata_size = core_savedata_size,
+		.savedata_buffer = core_savedata_buffer,
 		.pre_frame = core_pre_frame,
 	};
 

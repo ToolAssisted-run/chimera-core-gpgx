@@ -34,6 +34,10 @@ struct gate_core
 	int64_t (*domain_size)(int i);
 	int (*vsync_numerator)(void);
 	int (*vsync_denominator)(void);
+	int32_t (*savedata_count)(void);
+	const char *(*savedata_name)(int32_t i);
+	int64_t (*savedata_size)(int32_t i);
+	const uint8_t *(*savedata_buffer)(int32_t i);
 	/* optional per-frame hook (the rerecord leg); may be NULL */
 	void (*pre_frame)(void);
 };
@@ -49,6 +53,7 @@ struct gate_opts
 	int exercise;         /* nonzero: drive P1 with a deterministic pattern */
 	const char *dumpDomain;     /* optional: memory domain to dump after the run... */
 	const char *dumpPath;       /* ...into this file (the frontend gate compares it) */
+	const char *savedataDir;    /* optional: write every savedata export here after the run */
 };
 
 static uint64_t gate_fnv(uint64_t h, const void *p, size_t n)
@@ -269,6 +274,21 @@ static int gate_run(const struct gate_core *c, const struct gate_opts *o)
 		uint64_t dh = gate_fnv(0, c->domain_ptr(i), (size_t)c->domain_size(i));
 		printf("domain[%s]=%016llx\n", c->domain_name(i), (unsigned long long)dh);
 	}
+	if (o->savedataDir)
+	{
+		int32_t count = c->savedata_count();
+		printf("savedataFiles=%d\n", count);
+		for (int32_t i = 0; i < count; i++)
+		{
+			char path[4096];
+			snprintf(path, sizeof path, "%s/%s", o->savedataDir, c->savedata_name(i));
+			FILE *f = fopen(path, "wb");
+			if (!f) { perror(path); return 1; }
+			fwrite(c->savedata_buffer(i), 1, (size_t)c->savedata_size(i), f);
+			fclose(f);
+		}
+	}
+
 	if (o->dumpDomain && o->dumpPath)
 	{
 		int found = 0;
@@ -305,6 +325,7 @@ static int gate_parse_opts(int argc, char **argv, int first, struct gate_opts *o
 	o->exercise = 0;
 	o->dumpDomain = NULL;
 	o->dumpPath = NULL;
+	o->savedataDir = NULL;
 	for (int i = first; i < argc; i++)
 	{
 		if (!strcmp(argv[i], "--frames") && i + 1 < argc) o->frames = strtol(argv[++i], 0, 0);
@@ -315,6 +336,7 @@ static int gate_parse_opts(int argc, char **argv, int first, struct gate_opts *o
 		else if (!strcmp(argv[i], "--screenshot") && i + 1 < argc) o->screenshotPath = argv[++i];
 		else if (!strcmp(argv[i], "--exercise")) o->exercise = 1;
 		else if (!strcmp(argv[i], "--dump-domain") && i + 2 < argc) { o->dumpDomain = argv[++i]; o->dumpPath = argv[++i]; }
+		else if (!strcmp(argv[i], "--savedata-out") && i + 1 < argc) o->savedataDir = argv[++i];
 		else if (!strcmp(argv[i], "--rerecord")) ; /* run-wbx's; ignored here */
 		else { fprintf(stderr, "unknown argument %s\n", argv[i]); return 0; }
 	}
