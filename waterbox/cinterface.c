@@ -53,12 +53,14 @@ static int g_nsamples;
 static uint8_t *g_tempsram;
 
 /* ---- the wire format: waterbox.config "input.buttons" order ----
- * 0 Power, 1 Reset, 2 Pause (SMS/SG only: the console button, NMI), then
- * P1..P8 x {Up,Down,Left,Right,A,B,C,Start,X,Y,Z,Mode} (the quickerGPGX .sol
- * column order; masks match input.h bit values). On 2-button systems the
- * B/C columns carry Button 1/Button 2 - the same hardware bits. */
+ * 0 Power, 1 Reset, 2 Pause (SMS/SG only: the console button, NMI),
+ * 3 Previous Disk, 4 Next Disk (Sega CD; the cd slot's list order is the
+ * swap order), then P1..P8 x {Up,Down,Left,Right,A,B,C,Start,X,Y,Z,Mode}
+ * (the quickerGPGX .sol column order; masks match input.h bit values). On
+ * 2-button systems the B/C columns carry Button 1/Button 2 - the same
+ * hardware bits. */
 #define BTN_SYS 0
-#define BTN_PADS 3
+#define BTN_PADS 5
 #define BTN_PER_PAD 12
 #define BTN_COUNT (BTN_PADS + 8 * BTN_PER_PAD)
 static uint8_t g_buttons[BTN_COUNT];
@@ -72,6 +74,14 @@ static const uint16_t kPadBits[BTN_PER_PAD] = {
 /* dev index -> assigned player (1-based), 0 = no player; built after init by
  * walking input.dev[] exactly like the author's GPGXControlConverter */
 static int g_devPlayer[MAX_DEVICES];
+
+/* the cd slot's swap list; the current index and the swap buttons' previous
+ * levels are machine state (savestates and movies carry them) */
+#define MAX_DISCS 32
+static char g_discs[MAX_DISCS][256];
+static int g_discCount;
+static int g_discIndex;
+static uint8_t g_prevDiscBtn[2];
 
 static void update_viewport(void)
 {
@@ -240,12 +250,17 @@ static int port_system(const char *name)
  * plus the slot map. Returns NULL when nothing is mounted. */
 static const char *boot_file(char *buf, size_t bufsize)
 {
-	static const char *const slotIds[] = { "cart", "cd" };
-	for (int s = 0; s < 2; s++)
+	if (wbx_slot_count("cart") > 0 && wbx_slot_name("cart", 0, buf, bufsize) != NULL)
+		return buf;
+
+	g_discCount = wbx_slot_count("cd");
+	if (g_discCount > MAX_DISCS) g_discCount = MAX_DISCS;
+	for (int i = 0; i < g_discCount; i++)
+		wbx_slot_name("cd", i, g_discs[i], sizeof g_discs[i]);
+	if (g_discCount > 0)
 	{
-		if (wbx_slot_count(slotIds[s]) > 0
-			&& wbx_slot_name(slotIds[s], 0, buf, bufsize) != NULL)
-			return buf;
+		snprintf(buf, bufsize, "%s", g_discs[0]);
+		return buf;
 	}
 
 	FILE *f = fopen("rom", "rb");
@@ -483,6 +498,30 @@ ECL_EXPORT void FrameAdvance(uint64_t packed)
 	/* the SMS/SG pause button is a start-bit NMI on pad 0 (BizHawk's rule) */
 	if (g_buttons[2])
 		input.pad[0] |= INPUT_START;
+
+	/* disc swapping, edge-triggered exactly like the author's BizHawk
+	 * frontend: index -1 is an open tray */
+	if (system_hw == SYSTEM_MCD && g_discCount > 0)
+	{
+		int newDisk = g_discIndex;
+		if (g_buttons[3] && !g_prevDiscBtn[0]) newDisk--;
+		if (g_buttons[4] && !g_prevDiscBtn[1]) newDisk++;
+		g_prevDiscBtn[0] = g_buttons[3];
+		g_prevDiscBtn[1] = g_buttons[4];
+		if (newDisk < -1) newDisk = -1;
+		if (newDisk >= g_discCount) newDisk = g_discCount - 1;
+		if (newDisk != g_discIndex)
+		{
+			g_discIndex = newDisk;
+			cdd_unload();
+			if (g_discIndex >= 0)
+			{
+				char header[0x210];
+				cdd_load(g_discs[g_discIndex], header);
+			}
+			cdd_reset();
+		}
+	}
 
 	if (system_hw == SYSTEM_MCD)
 		system_frame_scd(0);

@@ -1,0 +1,212 @@
+[
+ {
+  "name": "anotherWorld.playaround",
+  "sol": "anotherWorld.playaround.sol",
+  "rom": "Another World (E) [!].bin",
+  "sha1": "9D98D6817B3E3651837BB2692F7A2A60A608C055",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "avuado.playaround",
+  "sol": "avuado.playaround.sol",
+  "rom": "avuado-1st-version.bin",
+  "sha1": "2EAA8193AEE0296498B1C41326856DFDD5B5223A",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "dinoRunner.playaround",
+  "sol": "dinoRunner.playaround.sol",
+  "rom": "Dino-Runner.bin",
+  "sha1": "0392D3D443B6A5738657A7823DFF8DAD67738E41",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "dinoRunner.savestart",
+  "sol": "dinoRunner.savestart.sol",
+  "rom": "Dino-Runner.bin",
+  "sha1": "0392D3D443B6A5738657A7823DFF8DAD67738E41",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "gamepad3b",
+  "initialState": "dinoRunner.savestart.state"
+ },
+ {
+  "name": "drunkasilike.playaround",
+  "sol": "drunkasilike.playaround.sol",
+  "rom": "drunkasilike.bin",
+  "sha1": "996F6C66CC9F1F2D164A245A02F0DEDC0D09E856",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "gamepad3b",
+  "initialState": ""
+ },
+ {
+  "name": "drunkasilike.savestart",
+  "sol": "drunkasilike.savestart.sol",
+  "rom": "drunkasilike.bin",
+  "sha1": "996F6C66CC9F1F2D164A245A02F0DEDC0D09E856",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "gamepad3b",
+  "initialState": "drunkasilike.savestart.state"
+ },
+ {
+  "name": "ecco.playaround",
+  "sol": "ecco.playaround.sol",
+  "rom": "Ecco the Dolphin (USA).cue",
+  "sha1": "A7304E95B50B0713A729213D2473C39E082629A1",
+  "sys": "segacd",
+  "ctl1": "gamepad3b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "frogger.playaround",
+  "sol": "frogger.playaround.sol",
+  "rom": "Frogger (Prototype) [!].gg",
+  "sha1": "B917AC6FBD3E5D18C07246F1309D81943EE1DD47",
+  "sys": "gamegear",
+  "ctl1": "gamegear2b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "gargoyles.playaround",
+  "sol": "gargoyles.playaround.sol",
+  "rom": "Gargoyles (U) [!].bin",
+  "sha1": "2B76764CA1E5A26E406E42C5F8DBD5B8DF915522",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "maiNurse.playaround",
+  "sol": "maiNurse.playaround.sol",
+  "rom": "mai_nurse_v1.00.sms",
+  "sha1": "770A8B571AF0B8C16C1BDE88311B14984AA7F38E",
+  "sys": "sms",
+  "ctl1": "gamepad2b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "microMachines.playaround",
+  "sol": "microMachines.playaround.sol",
+  "rom": "Micro Machines (USA).md",
+  "sha1": "39B25DBFA7A80AEBDEFC19AC2DF4BC75B934BBDA",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "monacoGP.playaround",
+  "sol": "monacoGP.playaround.sol",
+  "rom": "Monaco GP (Japan).sg",
+  "sha1": "BEA768B27C09BEC805F0C70545D2F1435E3A3DDF",
+  "sys": "sg1000",
+  "ctl1": "gamepad2b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "pitman.playaround",
+  "sol": "pitman.playaround.sol",
+  "rom": "Pitman.sg",
+  "sha1": "22B6C05F186BC87BFBEB734E8EF107D314F6825D",
+  "sys": "sg1000",
+  "ctl1": "gamegear2b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "princeOfPersia.playaround",
+  "sol": "princeOfPersia.playaround.sol",
+  "rom": "Prince_of_Persia_(UE)_[!].sms",
+  "sha1": "BF0CDB664129B5548083DC0DDE5449AB5F1BCC3A",
+  "sys": "gamegear",
+  "ctl1": "gamegear2b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "segapede.playaround",
+  "sol": "segapede.playaround.sol",
+  "rom": "Segapede (Prototype).md",
+  "sha1": "3452959175FA7631AF01E8821CB8B8410F5FBB79",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "sonic.playaround",
+  "sol": "sonic.playaround.sol",
+  "rom": "Sonic The Hedgehog (W) (REV01) [!].bin",
+  "sha1": "69E102855D4389C3FD1A8F3DC7D193F8EEE5FE5B",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "sonic.savestart",
+  "sol": "sonic.savestart.sol",
+  "rom": "Sonic The Hedgehog (W) (REV01) [!].bin",
+  "sha1": "69E102855D4389C3FD1A8F3DC7D193F8EEE5FE5B",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "gamepad3b",
+  "initialState": "sonic.savestart.state"
+ },
+ {
+  "name": "theLionKing.anyPercent",
+  "sol": "theLionKing.anyPercent.sol",
+  "rom": "Lion King, The (W) [!].bin",
+  "sha1": "24CBE4E75EC10E8E0FFBDB400CF86ECB072D4DA9",
+  "sys": "genesis",
+  "ctl1": "gamepad6b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "throne.playaround",
+  "sol": "throne.playaround.sol",
+  "rom": "Throne.iso",
+  "sha1": "EAAB21A4095FE2FD2E3817B448D207BA8BAC02A5",
+  "sys": "segacd",
+  "ctl1": "gamepad3b",
+  "ctl2": "none",
+  "initialState": ""
+ },
+ {
+  "name": "ultimateMK3.playaround",
+  "sol": "ultimateMK3.playaround.sol",
+  "rom": "Ultimate Mortal Kombat 3 (USA).md",
+  "sha1": "BF2DA4A7AE7AA428B0B316581F65B280DC3BA356",
+  "sys": "genesis",
+  "ctl1": "gamepad6b",
+  "ctl2": "gamepad6b",
+  "initialState": ""
+ },
+ {
+  "name": "virtuaRacing.playaround",
+  "sol": "virtuaRacing.playaround.sol",
+  "rom": "Virtua Racing (U) [!].bin",
+  "sha1": "FF969AE53120CC4E7CB1A8A7E47458F2EB8A2165",
+  "sys": "genesis",
+  "ctl1": "gamepad3b",
+  "ctl2": "none",
+  "initialState": ""
+ }
+]

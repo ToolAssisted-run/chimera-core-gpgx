@@ -1,3 +1,5 @@
 build/
 *.tga
 waterbox/tests/work/
+tests/roms-local/
+tests/firmware-local/

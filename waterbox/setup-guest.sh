@@ -17,6 +17,7 @@ while getopts "m:" opt; do
 		*) exit 2 ;;
 	esac
 done
+shift $((OPTIND - 1))
 mb="$(cd "$mb" && pwd)"
 
 # prefer a miniBox build that has the guest sysroot; the cpp flavor carries it too
@@ -64,5 +65,5 @@ c_link_args = ['-specs', '$sr/lib/musl-gcc.specs']
 EOF
 
 meson setup "$root/build/meson-guest" "$root" --cross-file "$cross" "$@" 2>/dev/null \
-	|| meson setup --reconfigure "$root/build/meson-guest" "$root" --cross-file "$cross"
+	|| meson setup --reconfigure "$root/build/meson-guest" "$root" --cross-file "$cross" "$@"
 echo "guest build configured: ninja -C build/meson-guest"

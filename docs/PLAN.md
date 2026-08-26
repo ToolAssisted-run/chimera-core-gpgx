@@ -141,3 +141,19 @@ edges call gpgx_reset(hard/soft).
   settings:forceVDP leg (14/14). tests/run-frontend.sh 3/3: 68K RAM
   byte-identical to native inside Chimera, forceVDP=pal through the
   frontend config matches ITS native reference, keybinds adopted.
+- 2026-08-26: M5 wired, smoke-gated (16/16 + frontend 3/3). The cd slot
+  (min 1, max unbounded = the swap list) is mutually exclusive with cart
+  via exposedWhen; firmware declares cdBiosUS/EU/JP requiredWhen cd+region
+  (BizHawk's ideal-dump sha1s) and mdBios requiredWhen loadBios. The wire
+  gained Previous/Next Disk at indices 3-4 (pads moved to 5; nothing was
+  released, so renumbering was free). Upstream cdd.c parses the cue and
+  reads the tracks over plain stdio in-guest - zero CD patches held. The
+  gate's cdsmoke legs run a SYNTHESIZED cue/bin disc pair plus a
+  deterministic dummy BIOS (load_rom refuses CD without one): equivalence,
+  hot swap at frame 100, and per-frame savestate round-trips with open disc
+  FILE handles all hold. REMAINING for real-game proof: the user's own CD
+  BIOS dumps in tests/firmware-local/ and images in tests/roms-local/ light
+  up tests/run-roms.sh (21-entry quickerGPGX manifest: ecco + throne are
+  the Sega CD ones; 5 homebrews already PASS, savestart entries stay
+  skipped - quickerGPGX-format states). CI workflow added (core gate +
+  manifest + frontend on public runners).

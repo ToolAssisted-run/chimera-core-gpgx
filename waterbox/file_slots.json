@@ -1,5 +1,5 @@
 {
-  "_comment": "The core-declared file form for chimera's project wizard. The cd slot arrives with the Sega CD milestone; today a project is exactly one cartridge.",
+  "_comment": "The core-declared file form for chimera's project wizard. A project is a cartridge OR a Sega CD disc set - the exposedWhen conditions make the two slots mutually exclusive, and exactly one must be filled (an unexposed slot's min does not bind).",
   "slots": [
     {
       "id": "cart",
@@ -13,7 +13,29 @@
         "smd",
         "mdx"
       ],
-      "help": "The Mega Drive / Genesis cartridge rom. The file extension picks the hardware, so keep it truthful."
+      "help": "The Mega Drive / Genesis cartridge rom. The file extension picks the hardware, so keep it truthful.",
+      "exposedWhen": {
+        "not": {
+          "slot": "cd"
+        }
+      }
+    },
+    {
+      "id": "cd",
+      "title": "Sega CD discs",
+      "min": 1,
+      "max": -1,
+      "formats": [
+        "cue",
+        "iso",
+        "bin"
+      ],
+      "help": "Sega CD / Mega CD disc images: a .cue sheet whose referenced track files join the project automatically, or a raw single-track .iso/.bin dump. The first disc is in the drive at boot; the order here is the swap order used by the Previous/Next Disk inputs. Needs the matching region's CD BIOS on the firmware page.",
+      "exposedWhen": {
+        "not": {
+          "slot": "cart"
+        }
+      }
     }
   ]
 }

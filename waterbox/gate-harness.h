@@ -7,7 +7,7 @@
  * drivers differ only in how the exports are reached.
  *
  * Wire format (waterbox.config button order): 0 Power, 1 Reset, 2 Pause,
- * then P1..P8 x {U,D,L,R,A,B,C,S,X,Y,Z,M}.
+ * 3 Previous Disk, 4 Next Disk, then P1..P8 x {U,D,L,R,A,B,C,S,X,Y,Z,M}.
  */
 #ifndef GATE_HARNESS_H
 #define GATE_HARNESS_H
@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define GATE_BTN_COUNT (3 + 8 * 12)
+#define GATE_BTN_COUNT (5 + 8 * 12)
 
 struct gate_core
 {
@@ -66,11 +66,11 @@ static void gate_exercise_pad(long frame, uint8_t *buttons)
 	uint64_t x = (uint64_t)frame * 6364136223846793005ULL + 1442695040888963407ULL;
 	x ^= x >> 33;
 	for (int k = 0; k < 12; k++)
-		buttons[3 + k] = (x >> k) & 1;
-	/* holding LEFT+RIGHT or UP+DOWN is not a pad state a real controller
+		buttons[5 + k] = (x >> k) & 1;
+	/* holding UP+DOWN or LEFT+RIGHT is not a pad state a real controller
 	 * produces and some games misbehave; drop the contradictions */
-	if (buttons[3] && buttons[4]) buttons[4] = 0;
 	if (buttons[5] && buttons[6]) buttons[6] = 0;
+	if (buttons[7] && buttons[8]) buttons[8] = 0;
 }
 
 /* ---- .sol parsing (quickerGPGX's movie format) ---- */
@@ -156,20 +156,19 @@ static int gate_parse_line(const char *line, const char *sys, const char *ctl1,
 	}
 	if (strcmp(sys, "segacd") == 0)
 	{
-		/* previous/next disc: not wired yet (single-disc milestone) */
 		if (*s != '.' && *s != '<') return 0;
-		s++;
+		buttons[3] = *s++ == '<';
 		if (*s != '.' && *s != '>') return 0;
-		s++;
+		buttons[4] = *s++ == '>';
 	}
 	if (*s++ != '|') return 0;
 
-	int n = gate_parse_pad(ctl1, s, buttons, 3);
+	int n = gate_parse_pad(ctl1, s, buttons, 5);
 	if (n < 0) return 0;
 	s += n;
 	if (n > 0 && *s++ != '|') return 0;
 
-	n = gate_parse_pad(ctl2, s, buttons, 3 + 12);
+	n = gate_parse_pad(ctl2, s, buttons, 5 + 12);
 	if (n < 0) return 0;
 	s += n;
 	if (n > 0 && *s++ != '|') return 0;
