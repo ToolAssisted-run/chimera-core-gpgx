@@ -13,6 +13,10 @@ project('chimera-core-gpgx', 'c',
 
 gpgx = 'extern/Genesis-Plus-GX'
 
+# the submodule pin is pristine upstream; overlay the chimera patch set
+# (idempotent, ~40 lines - see docs/PLAN.md)
+run_command(files('waterbox/apply-patches.sh'), check: true)
+
 # miniBox provides the guest kit headers (waterbox_settings/slots + jsmn) for
 # BOTH flavors, and the host library for run-wbx.
 mb = get_option('minibox_dir')
