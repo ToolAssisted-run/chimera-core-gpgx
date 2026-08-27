@@ -1,6 +1,6 @@
 #!/bin/sh
 # Builds the Genesis Plus GX waterbox core package and installs it into a chimera
-# checkout as build/Cores/gpgx.zip.
+# checkout as build/Cores/gpgx.chimeraCore.
 #
 # A package is core.wbx (fixed name) + waterbox.config + default_keybinds.json,
 # loaded through chimera's one built-in generic adapter. ONE package: the same
@@ -69,7 +69,7 @@ stamp_and_zip() {
 	pkg="$1"
 	build_one "$pkg"
 	staging="$root/build/package-staging/$pkg"
-	zip_path="$cores_dir/$pkg.zip"
+	zip_path="$cores_dir/$pkg.chimeraCore"
 	rm -f "$zip_path"
 
 python3 - "$staging/waterbox.config" "$core_version" <<'PYVER'

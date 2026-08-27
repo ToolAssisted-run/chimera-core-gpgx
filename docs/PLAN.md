@@ -119,7 +119,7 @@ edges call gpgx_reset(hard/soft).
 - native: `meson setup build/meson-native && ninja -C build/meson-native`
 - guest: `waterbox/setup-guest.sh` (cross file over miniBox's musl toolchain,
   C only) then `ninja -C build/meson-guest core.wbx`
-- package: `waterbox/build-package.sh` -> `<chimera>/build/Cores/gpgx.zip`
+- package: `waterbox/build-package.sh` -> `<chimera>/build/Cores/gpgx.chimeraCore`
 
 ## Milestone log
 
@@ -135,7 +135,7 @@ edges call gpgx_reset(hard/soft).
   sync catalogue plus forceSram, minus backdropColor - 99-button wire,
   lag group, GEN extensions), file_slots.json (cart; cd waits for M5),
   default_keybinds.json (BizHawk's GPGX Genesis defaults),
-  build-package.sh -> chimera build/Cores/gpgx.zip (deterministic,
+  build-package.sh -> chimera build/Cores/gpgx.chimeraCore (deterministic,
   check-wbx clean). run-gate.sh grew vsync in the digest block and the
   settings:forceVDP leg (14/14). tests/run-frontend.sh 3/3: 68K RAM
   byte-identical to native inside Chimera, forceVDP=pal through the

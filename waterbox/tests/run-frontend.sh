@@ -35,7 +35,7 @@ fi
 chimera_root="$(cd "$chimera_root" && pwd)"
 
 emu_exe="$chimera_root/build/Chimera.exe"
-package="$chimera_root/build/Cores/gpgx.zip"
+package="$chimera_root/build/Cores/gpgx.chimeraCore"
 rn="$root/build/meson-native/run-native"
 rom="$root/tests/roms/Dino-Runner.bin"
 [ -f "$emu_exe" ] || { echo "Chimera not built: $emu_exe" >&2; exit 1; }
@@ -149,7 +149,7 @@ fi
 # --- the 8-bit machines, from the SAME package. One core.wbx is four machines;
 # opening a .sms with it must be a Master System, with ITS controller (two
 # buttons and Pause, no X/Y/Z) and its own RAM matching native.
-smspkg="$chimera_root/build/Cores/gpgx.zip"
+smspkg="$chimera_root/build/Cores/gpgx.chimeraCore"
 smsrom="$root/tests/roms/mai_nurse_v1.00.sms"
 if [ ! -f "$smspkg" ]; then
 	report "sms:frontend" SKIP "gpgx.zip not installed"

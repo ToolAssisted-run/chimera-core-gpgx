@@ -170,7 +170,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: gpgx-${{ github.sha }}
-          path: chimera-checkout/build/Cores/gpgx.zip
+          path: chimera-checkout/build/Cores/gpgx.chimeraCore
           if-no-files-found: error
 
       - name: Upload the frontend work dir on failure
