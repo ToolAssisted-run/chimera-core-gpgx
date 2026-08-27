@@ -34,7 +34,7 @@ Status and plan: `docs/PLAN.md`.
 # native reference + sandbox drivers
 meson setup build/meson-native && ninja -C build/meson-native
 
-# the guest core (needs a built miniBox checkout, e.g. chimera/extern/chimera-common-minibox)
+# the guest core (needs a built miniBox checkout, e.g. chimera/extern/tools/chimera-common-minibox)
 sh waterbox/setup-guest.sh && ninja -C build/meson-guest
 
 # the equivalence gate: native == sandbox == savestate-rerecord on video,
