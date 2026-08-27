@@ -142,6 +142,18 @@ jobs:
           # drag in a miniBox host build this job has no reason to do.
           ninja -C build/meson-native run-native
 
+      - name: Cache the guest toolchain
+        uses: actions/cache@v4
+        with:
+          path: chimera-checkout/extern/tools/chimera-common-minibox/build/meson-linux
+          key: guest-c-${{ runner.os }}-${{ hashFiles('chimera-checkout/extern/tools/chimera-common-minibox/.git') }}-${{ hashFiles('chimera-checkout/extern/tools/chimera-common-minibox/meson.build') }}
+
+      - name: Build miniBox (host + guest toolchain)
+        run: |
+          mb="$PWD/chimera-checkout/extern/tools/chimera-common-minibox"
+          [ -f "$mb/build/meson-linux/build.ninja" ] || meson setup "$mb/build/meson-linux" "$mb"
+          meson compile -C "$mb/build/meson-linux"
+
       - name: Build and install the waterbox core package
         # The commit is the core's authoritative version: this build is the one
         # that publishes the artifact, so what it stamps is what a movie can
