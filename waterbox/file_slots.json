@@ -1,52 +1,50 @@
 {
-  "_comment": "The core-declared file form for chimera's project wizard. Every machine takes one cartridge; the Mega Drive alone can take Sega CD discs instead - the exposedWhen conditions make the two mutually exclusive, and hide the drive entirely on a machine that has none.",
+  "_comment": "The core-declared file form for chimera's project wizard. One core.wbx is five machines and each takes its own kind of file, so each gets its own slot: choosing Game Gear offers Game Gear cartridges and nothing else, and Sega CD is the machine that takes discs. Exactly one slot is exposed at a time, because exactly one machine is chosen - the exposedWhen conditions do the whole job, and the machine comes from the project rather than from a file name.",
   "slots": [
     {
-      "id": "cart",
+      "id": "cart_md",
       "title": "Cartridge",
       "min": 1,
       "max": 1,
-      "formats": [
-        "md",
-        "gen",
-        "bin",
-        "smd",
-        "mdx",
-        "sms",
-        "gg",
-        "sg"
-      ],
-      "help": "The cartridge rom for the machine chosen with the core: .md/.gen/.bin/.smd/.mdx for a Mega Drive, .sms, .gg or .sg for the others. The machine comes from the project, not from the file name, and a cartridge for another console is refused at load.",
-      "exposedWhen": {
-        "not": {
-          "slot": "cd"
-        }
-      }
+      "formats": ["md", "gen", "bin", "smd", "mdx"],
+      "help": "The Mega Drive / Genesis cartridge rom. A cartridge for another console is refused at load - the machine is the project's, not the file's.",
+      "exposedWhen": { "setting": "systemHardware", "is": "genesis" }
+    },
+    {
+      "id": "cart_sms",
+      "title": "Cartridge",
+      "min": 1,
+      "max": 1,
+      "formats": ["sms"],
+      "help": "The Master System cartridge rom.",
+      "exposedWhen": { "setting": "systemHardware", "is": "sms" }
+    },
+    {
+      "id": "cart_gg",
+      "title": "Cartridge",
+      "min": 1,
+      "max": 1,
+      "formats": ["gg"],
+      "help": "The Game Gear cartridge rom.",
+      "exposedWhen": { "setting": "systemHardware", "is": "gg" }
+    },
+    {
+      "id": "cart_sg",
+      "title": "Cartridge",
+      "min": 1,
+      "max": 1,
+      "formats": ["sg"],
+      "help": "The SG-1000 cartridge rom.",
+      "exposedWhen": { "setting": "systemHardware", "is": "sg" }
     },
     {
       "id": "cd",
       "title": "Sega CD discs",
       "min": 1,
       "max": -1,
-      "formats": [
-        "cue",
-        "iso",
-        "bin"
-      ],
+      "formats": ["cue", "iso", "bin"],
       "help": "Sega CD / Mega CD disc images: a .cue sheet whose referenced track files join the project automatically, or a raw single-track .iso/.bin dump. The first disc is in the drive at boot; the order here is the swap order used by the Previous/Next Disk inputs. Needs the matching region's CD BIOS on the firmware page.",
-      "exposedWhen": {
-        "all": [
-          {
-            "not": {
-              "slot": "cart"
-            }
-          },
-          {
-            "setting": "systemHardware",
-            "is": "genesis"
-          }
-        ]
-      }
+      "exposedWhen": { "setting": "systemHardware", "is": "segacd" }
     }
   ]
 }

@@ -293,8 +293,16 @@ static int port_system(const char *name)
  * plus the slot map. Returns NULL when nothing is mounted. */
 static const char *boot_file(char *buf, size_t bufsize)
 {
-	if (wbx_slot_count("cart") > 0 && wbx_slot_name("cart", 0, buf, bufsize) != NULL)
-		return buf;
+	/* one cartridge slot per machine, because each machine takes its own kind
+	 * of file and the wizard offers only that kind; exactly one of these is
+	 * ever filled, since exactly one machine is chosen */
+	static const char *const cart_slots[] = { "cart_md", "cart_sms", "cart_gg", "cart_sg", "cart" };
+	for (size_t i = 0; i < sizeof cart_slots / sizeof *cart_slots; i++)
+	{
+		if (wbx_slot_count(cart_slots[i]) > 0
+			&& wbx_slot_name(cart_slots[i], 0, buf, bufsize) != NULL)
+			return buf;
+	}
 
 	g_discCount = wbx_slot_count("cd");
 	if (g_discCount > MAX_DISCS) g_discCount = MAX_DISCS;
@@ -422,14 +430,18 @@ ECL_EXPORT int Init(void)
 		/* the extension strings are load_rom's own (loadrom.c compares
 		 * "SMS", "GG", "SG" after upper-casing; anything else is a Mega
 		 * Drive cart) */
-		static const char *const names[] = { "auto", "genesis", "sms", "gg", "sg" };
-		static const int values[] = { 0, 1, 2, 3, 4 };
-		switch (opt("systemHardware", "auto", names, values, 5))
+		static const char *const names[] = { "auto", "genesis", "segacd", "sms", "gg", "sg" };
+		static const int values[] = { 0, 1, 2, 3, 4, 5 };
+		switch (opt("systemHardware", "auto", names, values, 6))
 		{
 			case 1: memcpy(g_forceExt, "GEN", 4); break;
-			case 2: memcpy(g_forceExt, "SMS", 4); break;
-			case 3: memcpy(g_forceExt, ".GG", 4); break;
-			case 4: memcpy(g_forceExt, ".SG", 4); break;
+			/* a Sega CD boots from the disc, and load_rom reads the machine off
+			 * the disc's own extension - forcing a cartridge extension here
+			 * would make it a Mega Drive holding a cue sheet */
+			case 2: g_forceExt[0] = 0; break;
+			case 3: memcpy(g_forceExt, "SMS", 4); break;
+			case 4: memcpy(g_forceExt, ".GG", 4); break;
+			case 5: memcpy(g_forceExt, ".SG", 4); break;
 			default: g_forceExt[0] = 0; break;
 		}
 	}
