@@ -36,6 +36,14 @@ extern int sms_cart_bootrom_size(void);
 struct config_t config;
 int cinterface_force_sram;
 
+/* Turbo. The VDP goes on doing everything the 68000 can see - sprite overflow
+ * and collision, the pattern cache, the sprite parse - and stops only at
+ * remap_line, which is the step that turns the finished line buffer into
+ * pixels. ECL_INVISIBLE because it is the frontend's policy for the moment,
+ * not part of the machine: a state saved while fast-forwarding must not put the
+ * machine back into it when it is loaded to be looked at. */
+ECL_INVISIBLE int cinterface_render_enabled = 1;
+
 static char g_loadError[512];
 static int g_inited;
 
@@ -141,6 +149,10 @@ static void refresh_video(void)
 {
 	if (g_vwidth > VID_MAX_W) g_vwidth = VID_MAX_W;
 	if (g_vheight > VID_MAX_H) g_vheight = VID_MAX_H;
+	/* Turbo: remap_line produced nothing, so there is nothing to copy and the
+	 * buffer keeps the last frame that was drawn. The size is still reported,
+	 * because a mode change is the machine's news whether or not anyone looks. */
+	if (!cinterface_render_enabled) return;
 	const uint32_t *src = (const uint32_t *)bitmap.data;
 	int spitch = bitmap.pitch / 4;
 	for (int y = 0; y < g_vheight; y++)
@@ -663,6 +675,12 @@ ECL_EXPORT void FrameAdvance(uint64_t packed)
 	g_nsamples = audio_update(g_soundbuffer);
 	refresh_video();
 }
+
+/* Turbo (optional guest ABI group): while off the core must produce no picture
+ * and must otherwise be exactly the machine it would have been. run-gate.sh's
+ * turbo leg is the proof - N undrawn frames plus one drawn one come out byte for
+ * byte the same machine, and the same picture, as N+1 drawn ones. */
+ECL_EXPORT void SetRenderingEnabled(int on) { cinterface_render_enabled = on != 0; }
 
 ECL_EXPORT uint32_t *GetVideoBgra(void) { return g_videoOut; }
 ECL_EXPORT int GetVideoWidth(void) { return g_vwidth; }

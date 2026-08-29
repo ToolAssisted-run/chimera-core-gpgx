@@ -31,6 +31,10 @@ done
 work="$(mktemp -d)"
 trap 'rm -rf "$work"' EXIT
 digests() { grep -E '^(frames|vsync|videoHash|audioHash|lagFrames|domain\[)'; }
+# What a turbo run can be held to: everything except the whole-run video hash,
+# which a run that skipped the first half cannot possibly match - the second
+# half it did draw is compared instead.
+turboDigests() { grep -E '^(frames|vsync|tailVideoHash|audioHash|lagFrames|domain\[)'; }
 
 ok=0
 failed=0
@@ -88,6 +92,21 @@ for t in "${tests[@]}"; do
 		else
 			report "$name:input-shaped" PASS "input visibly shaped the machine"
 		fi
+	fi
+
+	# Turbo: the VDP's output step switched off for the first half of the run and
+	# back on for the second. Everything the 68000 can see - including the sprite
+	# overflow and collision bits, which are decided before that step - must be
+	# what it would have been, and so must every picture of that second half.
+	"$nat/run-wbx" "$gst/core.wbx" "$wd" "${args[@]}" 2>/dev/null | turboDigests > "$work/tnorm.txt"
+	if "$nat/run-wbx" "$gst/core.wbx" "$wd" "${args[@]}" --turbo 2>/dev/null | turboDigests > "$work/turbo.txt"; then
+		if cmp -s "$work/tnorm.txt" "$work/turbo.txt"; then
+			report "$name:turbo" PASS "$frames frames, half of them undrawn, same machine and same pictures"
+		else
+			report "$name:turbo" FAIL "$(diff "$work/tnorm.txt" "$work/turbo.txt" | tr '\n' ' ' | head -c 120)"
+		fi
+	else
+		report "$name:turbo" FAIL "turbo runner error"
 	fi
 
 	if ! "$nat/run-wbx" "$gst/core.wbx" "$wd" "${args[@]}" --rerecord 2>/dev/null | digests > "$work/rr.txt"; then
