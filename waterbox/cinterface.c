@@ -907,6 +907,40 @@ static const char *savedata_entry(int32_t i, uint8_t **buf, int64_t *size)
 	return NULL;
 }
 
+/* ---- the disc drive, for the frontend's status bar --------------------------
+ * A Sega CD has one, and only a Sega CD: a cartridge machine reports no drive
+ * rather than a light that never comes on. The light is the drive mechanism's
+ * own status - playing, seeking or scanning - which is what the LED on the real
+ * unit shows.
+ *
+ * What the drive holds is the cd slot's list and g_discIndex. Previous/Next put a
+ * disc in directly, so the selected disc IS the inserted one; stepping below the
+ * first opens the tray, and that is index -1 for both: an empty drive. */
+static int haveDrive(void) { return g_wire == WIRE_GENESIS && system_hw == SYSTEM_MCD && g_discCount > 0; }
+
+ECL_EXPORT int32_t GetDriveCount(void) { return haveDrive() ? 1 : 0; }
+
+ECL_EXPORT const char *GetDriveName(int32_t i) { return i == 0 && haveDrive() ? "CD" : NULL; }
+
+ECL_EXPORT int32_t GetDriveLight(int32_t i)
+{
+	if (i != 0 || !haveDrive()) return 0;
+	return cdd.status == CD_PLAY || cdd.status == CD_SEEK || cdd.status == CD_SCAN;
+}
+
+ECL_EXPORT int32_t GetDriveMediaCount(int32_t i) { return i == 0 && haveDrive() ? g_discCount : 0; }
+
+ECL_EXPORT const char *GetDriveMediaName(int32_t i, int32_t n)
+{
+	return n >= 0 && n < GetDriveMediaCount(i) ? g_discs[n] : NULL;
+}
+
+/* an open tray has nothing selected either; the frontend is told the first disc,
+ * which is where Next goes from there */
+ECL_EXPORT int32_t GetDriveMediaSelected(int32_t i) { return GetDriveMediaCount(i) > 0 && g_discIndex > 0 ? g_discIndex : 0; }
+
+ECL_EXPORT int32_t GetDriveMediaInserted(int32_t i) { return GetDriveMediaCount(i) > 0 ? g_discIndex : -1; }
+
 ECL_EXPORT int32_t GetSaveDataFileCount(void)
 {
 	uint8_t *b;
