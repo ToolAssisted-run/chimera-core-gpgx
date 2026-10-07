@@ -28,16 +28,36 @@ picks its matching wire from the machine it actually booted.
 
 Status and plan: `docs/PLAN.md`.
 
+## Using it in Chimera
+
+Chimera ships no cores and downloads none. Download
+`gpgx-<version>.chimeraCore` from this repository's
+[Releases](https://github.com/ToolAssisted-run/chimera-core-gpgx/releases)
+page (`dev` follows main, `nightly-YYYY-MM-DD` builds are dated), or build it,
+and put the file in the `Cores` folder beside `Chimera.exe`. File > Core
+Manager lists the cores in that folder. The same file works on Linux and on
+Windows. Game files and BIOS are not included: you provide them.
+
 ## Build and test
+
+`<chimera>` is a Chimera checkout and `<minibox>` is its built
+`extern/chimera-common-minibox` submodule.
 
 ```
 # native reference + sandbox drivers
-meson setup build/meson-native && ninja -C build/meson-native
+meson setup build/meson-native -Dminibox_dir=<minibox> && ninja -C build/meson-native
 
-# the guest core (needs a built miniBox checkout, e.g. chimera/extern/chimera-common-minibox)
-sh waterbox/setup-guest.sh && ninja -C build/meson-guest
+# the guest core
+sh waterbox/setup-guest.sh -m <minibox> && ninja -C build/meson-guest
 
 # the equivalence gate: native == sandbox == savestate-rerecord on video,
 # audio, lag and every memory domain, over quickerGPGX's homebrew movie set
 ./waterbox/run-gate.sh
+
+# the package, written to <chimera>/build/Cores/gpgx.chimeraCore
+./waterbox/build-package.sh -m <minibox> -r <chimera>
 ```
+
+The full instructions, from a fresh clone to the gates, are in
+[docs/BUILDING.md](docs/BUILDING.md). An AI coding agent should start with
+[AGENTS.md](AGENTS.md).
