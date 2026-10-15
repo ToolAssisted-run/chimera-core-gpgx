@@ -1,5 +1,5 @@
 {
-  "_comment": "This file lists the kinds of file a project of this core can hold. Chimera's New Project window is built from it. The core is five machines and each takes its own kind of file, so each has its own slot. Choosing Game Gear offers Game Gear cartridges only, and the Sega CD is the machine that takes discs. Only the slot of the chosen machine is shown (the exposedWhen conditions do this). The machine comes from the project and never from a file name.",
+  "_comment": "This file lists the kinds of file a project of this core can hold. Chimera's New Project window is built from it. The core is six machines and each takes its own kind of file, so each has its own slot. Choosing Game Gear offers Game Gear cartridges only, and the Sega CD is the machine that takes discs. Only the slot of the chosen machine is shown (the exposedWhen conditions do this). The machine comes from the project and never from a file name.",
   "slots": [
     {
       "id": "cart_md",
@@ -36,6 +36,15 @@
       "formats": ["sg"],
       "help": "The SG-1000 cartridge ROM.",
       "exposedWhen": { "setting": "systemHardware", "is": "sg" }
+    },
+    {
+      "id": "cart_pico",
+      "title": "Cartridge",
+      "min": 1,
+      "max": 1,
+      "formats": ["md", "bin", "gen"],
+      "help": "The Sega Pico cartridge ROM. A Pico cartridge says SEGA PICO in its header; a cartridge that does not is refused, because the project decides the machine and the file does not.",
+      "exposedWhen": { "setting": "systemHardware", "is": "pico" }
     },
     {
       "id": "cd",

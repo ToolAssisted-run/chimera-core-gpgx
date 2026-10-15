@@ -55,6 +55,7 @@ static int g_inited;
  * pins this; "auto" keeps the old sniff-the-name behaviour for the test
  * runners, which mount real names. */
 static char g_forceExt[8];
+static int g_chosenHw; /* the systemHardware setting, as opt() numbered it */
 static int g_inputRead;      /* raised by real_input_callback (patched io_ctrl.c) */
 
 /* ---- video: GPGX renders into bitmap.data (1024px pitch); the ABI hands out
@@ -83,11 +84,22 @@ static uint8_t *g_tempsram;
  *     {Up,Down,Left,Right,Button 1,Button 2}
  *   gg: 0 Power, 1 Reset, then P1 x {Up,Down,Left,Right,Button 1,Button 2,
  *     Start} - the Game Gear's Start sits on the unit but reads as a pad bit
+ *   pico: 0 Power, 1 Reset, then P1 {Up,Down,Left,Right,Red Button,Pen
+ *     Button,Previous Page,Next Page}, and two axes, P1 Pen X and P1 Pen Y:
+ *     where the pen is on the drawing pad, 0 to 65535 from one edge to the
+ *     other (as the libretro frontend maps its pointer). The page buttons
+ *     turn the storybook a page when they go down.
  */
 #define WIRE_GENESIS 0
 #define WIRE_8BIT 1
 #define WIRE_GG 2
+#define WIRE_PICO 3
 static int g_wire = WIRE_GENESIS;
+
+/* the Pico's pen, as the frontend's axes give it, and its page buttons' last
+ * levels (machine state: savestates and movies carry them) */
+static int32_t g_penAxis[2] = { 32768, 32768 };
+static uint8_t g_prevPageBtn[2];
 
 #define BTN_COUNT 101 /* the widest wire (genesis); narrower ones use a prefix */
 static uint8_t g_buttons[BTN_COUNT];
@@ -308,7 +320,7 @@ static const char *boot_file(char *buf, size_t bufsize)
 	/* one cartridge slot per machine, because each machine takes its own kind
 	 * of file and the wizard offers only that kind; exactly one of these is
 	 * ever filled, since exactly one machine is chosen */
-	static const char *const cart_slots[] = { "cart_md", "cart_sms", "cart_gg", "cart_sg", "cart" };
+	static const char *const cart_slots[] = { "cart_md", "cart_sms", "cart_gg", "cart_sg", "cart_pico", "cart" };
 	for (size_t i = 0; i < sizeof cart_slots / sizeof *cart_slots; i++)
 	{
 		if (wbx_slot_count(cart_slots[i]) > 0
@@ -442,9 +454,9 @@ ECL_EXPORT int Init(void)
 		/* the extension strings are load_rom's own (loadrom.c compares
 		 * "SMS", "GG", "SG" after upper-casing; anything else is a Mega
 		 * Drive cart) */
-		static const char *const names[] = { "auto", "genesis", "segacd", "sms", "gg", "sg" };
-		static const int values[] = { 0, 1, 2, 3, 4, 5 };
-		switch (opt("systemHardware", "auto", names, values, 6))
+		static const char *const names[] = { "auto", "genesis", "segacd", "sms", "gg", "sg", "pico" };
+		static const int values[] = { 0, 1, 2, 3, 4, 5, 6 };
+		switch (g_chosenHw = opt("systemHardware", "auto", names, values, 7))
 		{
 			case 1: memcpy(g_forceExt, "GEN", 4); break;
 			/* a Sega CD boots from the disc, and load_rom reads the machine off
@@ -454,6 +466,9 @@ ECL_EXPORT int Init(void)
 			case 3: memcpy(g_forceExt, "SMS", 4); break;
 			case 4: memcpy(g_forceExt, ".GG", 4); break;
 			case 5: memcpy(g_forceExt, ".SG", 4); break;
+			/* a Pico cartridge is a Mega Drive one to the loader, which then
+			 * finds "SEGA PICO" in its header */
+			case 6: memcpy(g_forceExt, "GEN", 4); break;
 			default: g_forceExt[0] = 0; break;
 		}
 	}
@@ -541,6 +556,21 @@ ECL_EXPORT int Init(void)
 		return 0;
 	}
 
+	/* the Pico and the Mega Drive take cartridges of the same shape; the
+	 * header ("SEGA PICO") says which, and the project's machine must agree */
+	if (g_chosenHw == 6 && system_hw != SYSTEM_PICO)
+	{
+		snprintf(g_loadError, sizeof g_loadError,
+			"'%s' is not a Sega Pico cartridge (its header does not say SEGA PICO); choose the machine it is for", file);
+		return 0;
+	}
+	if (g_chosenHw != 6 && g_chosenHw != 0 && system_hw == SYSTEM_PICO)
+	{
+		snprintf(g_loadError, sizeof g_loadError,
+			"'%s' is a Sega Pico cartridge; choose the Sega Pico machine", file);
+		return 0;
+	}
+
 	audio_init(44100, 0);
 	system_init();
 	system_reset();
@@ -549,7 +579,9 @@ ECL_EXPORT int Init(void)
 	clear_sram();
 
 	/* the wire this machine speaks (see the block above) */
-	if ((system_hw & SYSTEM_PBC) == SYSTEM_MD || system_hw == SYSTEM_MCD)
+	if (system_hw == SYSTEM_PICO)
+		g_wire = WIRE_PICO;
+	else if ((system_hw & SYSTEM_PBC) == SYSTEM_MD || system_hw == SYSTEM_MCD)
 		g_wire = WIRE_GENESIS;
 	else if (system_hw == SYSTEM_GG)
 		g_wire = WIRE_GG;
@@ -611,6 +643,29 @@ ECL_EXPORT void FrameAdvance(uint64_t packed)
 		gen_reset(0);
 	}
 
+	if (g_wire == WIRE_PICO)
+	{
+		/* the drawing pad's coordinates, as upstream's libretro frontend
+		 * maps a pointer onto them */
+		uint16_t pad = 0;
+		if (g_buttons[2]) pad |= INPUT_UP;
+		if (g_buttons[3]) pad |= INPUT_DOWN;
+		if (g_buttons[4]) pad |= INPUT_LEFT;
+		if (g_buttons[5]) pad |= INPUT_RIGHT;
+		if (g_buttons[6]) pad |= INPUT_PICO_RED;
+		if (g_buttons[7]) pad |= INPUT_PICO_PEN;
+		input.pad[0] = pad;
+		input.analog[0][0] = 0x03c + (g_penAxis[0] * (0x17c - 0x03c)) / 65535;
+		input.analog[0][1] = 0x1fc + (g_penAxis[1] * (0x2f7 - 0x1fc)) / 65535;
+		/* a page turn when its button goes down; the book does not go round
+		 * (upstream's libretro frontend wraps 0 to 7, which no book does),
+		 * so the page stays in upstream's range, 0 (the cover) to 7 */
+		if (g_buttons[8] && !g_prevPageBtn[0] && pico_current > 0) pico_current--;
+		if (g_buttons[9] && !g_prevPageBtn[1] && pico_current < 7) pico_current++;
+		g_prevPageBtn[0] = g_buttons[8];
+		g_prevPageBtn[1] = g_buttons[9];
+	}
+	else
 	{
 		const int base = wire_pad_base();
 		const int width = wire_pad_width();
@@ -702,6 +757,20 @@ ECL_EXPORT int GetVsyncDenominator(void)
 ECL_EXPORT int InputWasRead(void)
 {
 	return g_inputRead;
+}
+
+/* ---- axes: the Pico's pen (the other machines have none) ---- */
+ECL_EXPORT int GetAxisCount(void) { return g_wire == WIRE_PICO ? 2 : 0; }
+ECL_EXPORT const char *GetAxisName(int32_t i)
+{
+	static const char *const names[2] = { "P1 Pen X", "P1 Pen Y" };
+	return g_wire == WIRE_PICO && i >= 0 && i < 2 ? names[i] : "";
+}
+ECL_EXPORT int IsAxisActive(int32_t i) { return g_wire == WIRE_PICO && i >= 0 && i < 2; }
+ECL_EXPORT void SetAxis(int32_t i, int32_t value)
+{
+	if (i < 0 || i >= 2) return;
+	g_penAxis[i] = value < 0 ? 0 : value > 65535 ? 65535 : value;
 }
 
 /* ---- memory domains: the author's gpgx_get_memdom table, verbatim, plus a

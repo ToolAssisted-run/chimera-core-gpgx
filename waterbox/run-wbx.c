@@ -67,6 +67,7 @@ static i32fn g_GetSaveDataFileCount;
 static ptrfn_i32 g_GetSaveDataFileName, g_GetSaveDataFileBuffer;
 static i64fn_i32 g_GetSaveDataFileSize;
 static voidfn_i g_SetRenderingEnabled;
+static setfn g_SetAxis;
 static int g_rerecord;
 static membuf g_state;
 
@@ -85,6 +86,7 @@ static const char *core_load_error(void) { return (const char *)g_GetLoadError()
 static void core_set_button(int32_t i, int32_t s) { g_SetButton(i, s); }
 static void core_frame(void) { g_FrameAdvance(0); }
 static void core_set_rendering(int on) { g_SetRenderingEnabled(on); }
+static void core_set_axis(int32_t i, int32_t v) { g_SetAxis(i, v); }
 static const uint32_t *core_video(int *w, int *h)
 {
 	*w = g_GetVideoWidth();
@@ -197,6 +199,7 @@ int main(int argc, char **argv)
 	g_GetSaveDataFileSize = (i64fn_i32)proc(g_host, "GetSaveDataFileSize");
 	g_GetSaveDataFileBuffer = (ptrfn_i32)proc(g_host, "GetSaveDataFileBuffer");
 	g_SetRenderingEnabled = (voidfn_i)proc(g_host, "SetRenderingEnabled");
+	g_SetAxis = (setfn)proc(g_host, "SetAxis");
 
 	struct gate_core c = {
 		.init = core_init,
@@ -218,6 +221,7 @@ int main(int argc, char **argv)
 		.savedata_buffer = core_savedata_buffer,
 		.pre_frame = core_pre_frame,
 		.set_rendering = core_set_rendering,
+		.set_axis = core_set_axis,
 	};
 
 	/* Init runs before Seal - the loaded machine is the sealed baseline */

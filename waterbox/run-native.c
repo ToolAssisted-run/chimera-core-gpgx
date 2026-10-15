@@ -25,6 +25,7 @@ extern int16_t *GetAudio(void);
 extern int GetAudioSampleCount(void);
 extern int InputWasRead(void);
 extern void SetRenderingEnabled(int on);
+extern void SetAxis(int32_t index, int32_t value);
 extern int GetVsyncNumerator(void);
 extern int GetVsyncDenominator(void);
 extern int GetMemoryDomainCount(void);
@@ -87,6 +88,7 @@ int main(int argc, char **argv)
 		.savedata_buffer = GetSaveDataFileBuffer,
 		.pre_frame = NULL,
 		.set_rendering = SetRenderingEnabled,
+		.set_axis = SetAxis,
 	};
 	return gate_run(&c, &o);
 }

@@ -6,7 +6,8 @@
 #
 # The test base is quickerGPGX's: real playaround movies over the five
 # homebrew roms that are free to distribute (three Genesis, one Master
-# System, one SG-1000 - the 8-bit paths are proven from day one).
+# System, one SG-1000 - the 8-bit paths are proven from day one). The Sega
+# Pico runs a cartridge the test writes (tests/make-pico.py).
 #
 # Usage: ./run-gate.sh [-n <native build dir>] [-g <guest build dir>]
 set -u
@@ -199,6 +200,86 @@ else
 	else
 		report "settings:forceVDP" PASS "forceVDP=pal reached the guest, vsync + digests flipped"
 	fi
+fi
+
+# ---- Sega Pico: a cartridge the test writes (tests/make-pico.py; the Pico
+# has no BIOS). Its program copies the Pico's IO, pen and page registers to
+# RAM once a frame, so the 68K RAM after a run says what the controls did.
+wd="$work/pico"
+mkdir -p "$wd"
+python3 "$root/tests/make-pico.py" "$wd/pico.bin" > /dev/null
+printf '{"cart_pico":["pico.bin"]}' > "$wd/slots"
+printf '{"systemHardware":"pico"}' > "$wd/settings"
+pargs=(--sys genesis --ctl1 none --ctl2 none --wire pico)
+"$nat/run-native" "$wd" "${pargs[@]}" --frames 600 --exercise 2>"$work/pico.err" | digests > "$work/piconat.txt"
+"$nat/run-wbx" "$gst/core.wbx" "$wd" "${pargs[@]}" --frames 600 --exercise 2>>"$work/pico.err" | digests > "$work/picobox.txt"
+"$nat/run-wbx" "$gst/core.wbx" "$wd" "${pargs[@]}" --frames 600 2>/dev/null | digests > "$work/picoidle.txt"
+"$nat/run-wbx" "$gst/core.wbx" "$wd" "${pargs[@]}" --frames 600 --exercise --rerecord 2>/dev/null | digests > "$work/picorr.txt"
+if [ ! -s "$work/picobox.txt" ] || ! cmp -s "$work/piconat.txt" "$work/picobox.txt"; then
+	report "pico:equivalence" FAIL "$(head -1 "$work/pico.err") $(diff "$work/piconat.txt" "$work/picobox.txt" | tr '\n' ' ' | head -c 100)"
+else
+	report "pico:equivalence" PASS "600 frames of the pad, the buttons, the pages and the pen, native == waterboxed"
+fi
+if [ -s "$work/picoidle.txt" ] && ! cmp -s "$work/picobox.txt" "$work/picoidle.txt"; then
+	report "pico:input-shaped" PASS "the exercise changed the machine"
+else
+	report "pico:input-shaped" FAIL "the exercise changed nothing"
+fi
+if [ -s "$work/picorr.txt" ] && cmp -s "$work/picobox.txt" "$work/picorr.txt"; then
+	report "pico:savestate" PASS "per-frame round-trip is lossless"
+else
+	report "pico:savestate" FAIL "$(diff "$work/picobox.txt" "$work/picorr.txt" | tr '\n' ' ' | head -c 120)"
+fi
+# what the program read: IO, pen X, pen Y, page - after a 120-frame run (the
+# 68K RAM is held with the bytes of each word swapped)
+pico_regs() {
+	"$nat/run-wbx" "$gst/core.wbx" "$wd" "${pargs[@]}" --frames 120 --dump-domain "68K RAM" "$work/pico.ram" "$@" > /dev/null 2>&1
+	python3 -c "
+import sys
+d = open(sys.argv[1], 'rb').read()
+b = lambda a: d[a ^ 1]
+print('%02x %d %d %02x' % (b(2), b(4) << 8 | b(5), b(6) << 8 | b(7), b(8)))" "$work/pico.ram" 2> /dev/null
+}
+# each control, held from frame 100 to the end, against the IO register's
+# bits (0 while held): up 0, down 1, left 2, right 3, red 4, pen 7
+got=""
+for i in 2 3 4 5 6 7; do got="$got $(pico_regs --press "$i:100:40" | cut -d' ' -f1)"; done
+idle="$(pico_regs)"
+if [ "$got" = " fe fd fb f7 ef 7f" ] && [ "$idle" = "ff 220 633 00" ]; then
+	report "pico:controls" PASS "each button its own bit of the IO register; the pen at rest mid-pad (220, 633)"
+else
+	report "pico:controls" FAIL "IO:$got, at rest: $idle"
+fi
+corner0="$(pico_regs --axis 0:0 --axis 1:0)"
+corner1="$(pico_regs --axis 0:65535 --axis 1:65535)"
+pages="$(pico_regs --press 9:10:2 --press 9:20:2 --press 9:30:2 --press 8:40:2 | cut -d' ' -f4)"
+under="$(pico_regs --press 8:20:2 | cut -d' ' -f4)"
+over="$(pico_regs $(for f in 10 20 30 40 50 60 70 80 90; do printf -- '--press 9:%s:2 ' "$f"; done) | cut -d' ' -f4)"
+if [ "$corner0" = "ff 60 508 00" ] && [ "$corner1" = "ff 380 759 00" ] && [ "$pages" = 03 ] && [ "$under" = 00 ] && [ "$over" = 7f ]; then
+	report "pico:pen-and-pages" PASS "the pen spans the pad (60..380, 508..759); three pages on and one back is page 2; the book stops at the cover and at page 7"
+else
+	report "pico:pen-and-pages" FAIL "corners '$corner0' '$corner1', pages '$pages' '$under' '$over'"
+fi
+python3 "$root/tests/make-pico.py" "$wd/nopad.bin" nopad > /dev/null
+mkdir -p "$work/piconopad"; cp "$wd/nopad.bin" "$wd/settings" "$work/piconopad/"
+printf '{"cart_pico":["nopad.bin"]}' > "$work/piconopad/slots"
+lagpad="$(sed -n 's/^lagFrames=//p' "$work/picobox.txt")"
+lagnone="$("$nat/run-wbx" "$gst/core.wbx" "$work/piconopad" "${pargs[@]}" --frames 600 2>/dev/null | sed -n 's/^lagFrames=//p')"
+if [ "${lagpad:-x}" -le 2 ] 2> /dev/null && [ "${lagnone:-x}" = 600 ]; then
+	report "pico:lag" PASS "$lagpad of 600 reading the controls, $lagnone of 600 reading none"
+else
+	report "pico:lag" FAIL "$lagpad of 600 reading the controls, $lagnone of 600 reading none"
+fi
+# the machine and the cartridge must agree
+mkdir -p "$work/picomix1" "$work/picomix2"
+cp "$root/tests/roms/Dino-Runner.bin" "$work/picomix1/"; printf '{"cart_pico":["Dino-Runner.bin"]}' > "$work/picomix1/slots"; printf '{"systemHardware":"pico"}' > "$work/picomix1/settings"
+cp "$wd/pico.bin" "$work/picomix2/"; printf '{"cart_md":["pico.bin"]}' > "$work/picomix2/slots"; printf '{"systemHardware":"genesis"}' > "$work/picomix2/settings"
+e1="$("$nat/run-wbx" "$gst/core.wbx" "$work/picomix1" "${pargs[@]}" --frames 1 2>&1 >/dev/null)"
+e2="$("$nat/run-wbx" "$gst/core.wbx" "$work/picomix2" --frames 1 2>&1 >/dev/null)"
+if echo "$e1" | grep -q "is not a Sega Pico cartridge" && echo "$e2" | grep -q "is a Sega Pico cartridge"; then
+	report "pico:cartridge-check" PASS "a Mega Drive cartridge on the Pico, and a Pico one on the Mega Drive, are refused"
+else
+	report "pico:cartridge-check" FAIL "'$(echo "$e1" | tail -1)' / '$(echo "$e2" | tail -1)'"
 fi
 
 echo ""

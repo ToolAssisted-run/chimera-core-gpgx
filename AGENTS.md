@@ -4,9 +4,9 @@ This repository builds ekeeke's Genesis Plus GX as a sandboxed guest for
 Chimera, a frontend for tool-assisted speedruns. It produces one file,
 `gpgx.chimeraCore`: a zip holding `core.wbx` (the emulator built for the
 miniBox sandbox), `waterbox.config`, `default_keybinds.json`,
-`file_slots.json`, `build.json` and the licence texts. The one package is five
+`file_slots.json`, `build.json` and the licence texts. The one package is six
 machines, picked by the `systemHardware` setting: Mega Drive / Genesis, Sega
-CD, Master System, Game Gear and SG-1000. `docs/BUILDING.md` has the detailed
+CD, Master System, Game Gear, SG-1000 and Sega Pico. `docs/BUILDING.md` has the detailed
 build instructions; this file is the short operating guide.
 
 ## Layout

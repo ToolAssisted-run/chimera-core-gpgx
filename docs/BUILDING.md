@@ -2,8 +2,8 @@
 
 This repository builds Genesis Plus GX as a sandboxed guest (`core.wbx`) and
 packages it as one file, `gpgx.chimeraCore`, which Chimera loads. The one
-package is five machines: Mega Drive / Genesis, Sega CD / Mega CD, Master
-System, Game Gear and SG-1000. The steps below are the ones
+package is six machines: Mega Drive / Genesis, Sega CD / Mega CD, Master
+System, Game Gear, SG-1000 and Sega Pico. The steps below are the ones
 `.github/workflows/chimera.yml` runs from a fresh clone on a public Ubuntu
 runner, where they pass.
 
@@ -351,6 +351,7 @@ machine, and the machine decides the files:
 | `sms` | Master System | one cartridge ROM: `.sms` |
 | `gg` | Game Gear | one cartridge ROM: `.gg` |
 | `sg` | SG-1000 | one cartridge ROM: `.sg` |
+| `pico` | Sega Pico | one cartridge ROM: `.md`, `.bin`, `.gen`, whose header says SEGA PICO |
 
 For a Sega CD the first disc is in the drive at boot, and the order of the
 list is the swap order of the Previous Disk and Next Disk inputs. A cartridge

@@ -11,6 +11,11 @@
  *   genesis: 0 Power, 1 Reset, 2 Pause, 3 Prev Disk, 4 Next Disk, pads x12
  *   8bit:    0 Power, 1 Reset, 2 Pause, then P1..P2 x {U,D,L,R,B1,B2}
  *   gg:      0 Power, 1 Reset, then P1 x {U,D,L,R,B1,B2,Start}
+ *   pico:    0 Power, 1 Reset, then P1 {U,D,L,R,Red,Pen,Prev Page,Next Page},
+ *            and the axes Pen X, Pen Y (0..65535)
+ *
+ * --press I:F:N holds wire button I for N frames from frame F, and --axis I:V
+ * holds axis I at V for the whole run (both may be given several times).
  */
 #ifndef GATE_HARNESS_H
 #define GATE_HARNESS_H
@@ -45,7 +50,11 @@ struct gate_core
 	void (*pre_frame)(void);
 	/* optional: turn the core's drawing on and off (the turbo leg); may be NULL */
 	void (*set_rendering)(int on);
+	/* optional: an analog axis (the Pico's pen); may be NULL */
+	void (*set_axis)(int32_t index, int32_t value);
 };
+
+#define GATE_MAX_PRESSES 32
 
 struct gate_opts
 {
@@ -62,6 +71,10 @@ struct gate_opts
 	const char *savedataDir;    /* optional: write every savedata export here after the run */
 	int turbo;            /* nonzero: draw nothing for the first half of the run */
 	long turboSettle;     /* frames to let the picture settle before hashing it */
+	int pressCount;       /* --press I:F:N */
+	long press[GATE_MAX_PRESSES][3];
+	int axisCount;        /* --axis I:V */
+	long axis[4][2];
 };
 
 static uint64_t gate_fnv(uint64_t h, const void *p, size_t n)
@@ -84,6 +97,20 @@ static void gate_exercise_pad(long frame, uint8_t *buttons)
 	 * produces and some games misbehave; drop the contradictions */
 	if (buttons[5] && buttons[6]) buttons[6] = 0;
 	if (buttons[7] && buttons[8]) buttons[8] = 0;
+}
+
+/* the Pico's exercise: the D-pad, the two buttons and the page buttons from
+ * the same pattern, and the pen wandering over the pad */
+static void gate_exercise_pico(long frame, uint8_t *buttons, int32_t *axes)
+{
+	uint64_t x = (uint64_t)frame * 6364136223846793005ULL + 1442695040888963407ULL;
+	x ^= x >> 33;
+	for (int k = 0; k < 8; k++)
+		buttons[2 + k] = (x >> k) & 1;
+	if (buttons[2] && buttons[3]) buttons[3] = 0;
+	if (buttons[4] && buttons[5]) buttons[5] = 0;
+	axes[0] = (int32_t)((x >> 16) & 0xffff);
+	axes[1] = (int32_t)((x >> 32) & 0xffff);
 }
 
 /* ---- .sol parsing (quickerGPGX's movie format) ---- */
@@ -297,8 +324,23 @@ static int gate_run(const struct gate_core *c, const struct gate_opts *o)
 				return 1;
 			}
 		}
-		else if (o->exercise)
-			gate_exercise_pad(f, buttons);
+		int32_t axes[4] = { 32768, 32768, 32768, 32768 };
+		if (f >= sol.count && o->exercise)
+		{
+			if (strcmp(o->wire, "pico") == 0)
+				gate_exercise_pico(f, buttons, axes);
+			else
+				gate_exercise_pad(f, buttons);
+		}
+		for (int k = 0; k < o->pressCount; k++)
+			if (f >= o->press[k][1] && f < o->press[k][1] + o->press[k][2] && o->press[k][0] < GATE_BTN_COUNT)
+				buttons[o->press[k][0]] = 1;
+		for (int k = 0; k < o->axisCount; k++)
+			if (o->axis[k][0] >= 0 && o->axis[k][0] < 4)
+				axes[o->axis[k][0]] = (int32_t)o->axis[k][1];
+		if (c->set_axis && strcmp(o->wire, "pico") == 0)
+			for (int k = 0; k < 2; k++)
+				c->set_axis(k, axes[k]);
 
 		/* turbo: draw nothing for the first half of the run, then draw the
 		 * second half normally. The second half's pictures are what the
@@ -407,6 +449,8 @@ static int gate_parse_opts(int argc, char **argv, int first, struct gate_opts *o
 	o->savedataDir = NULL;
 	o->turbo = 0;
 	o->turboSettle = 0;
+	o->pressCount = 0;
+	o->axisCount = 0;
 	for (int i = first; i < argc; i++)
 	{
 		if (!strcmp(argv[i], "--frames") && i + 1 < argc) o->frames = strtol(argv[++i], 0, 0);
@@ -421,6 +465,16 @@ static int gate_parse_opts(int argc, char **argv, int first, struct gate_opts *o
 		else if (!strcmp(argv[i], "--savedata-out") && i + 1 < argc) o->savedataDir = argv[++i];
 		else if (!strcmp(argv[i], "--turbo")) o->turbo = 1;
 		else if (!strcmp(argv[i], "--turbo-settle") && i + 1 < argc) o->turboSettle = strtol(argv[++i], 0, 0);
+		else if (!strcmp(argv[i], "--press") && i + 1 < argc && o->pressCount < GATE_MAX_PRESSES)
+		{
+			long *p = o->press[o->pressCount++];
+			if (sscanf(argv[++i], "%ld:%ld:%ld", &p[0], &p[1], &p[2]) != 3) { fprintf(stderr, "--press wants I:F:N\n"); return 0; }
+		}
+		else if (!strcmp(argv[i], "--axis") && i + 1 < argc && o->axisCount < 4)
+		{
+			long *a = o->axis[o->axisCount++];
+			if (sscanf(argv[++i], "%ld:%ld", &a[0], &a[1]) != 2) { fprintf(stderr, "--axis wants I:V\n"); return 0; }
+		}
 		else if (!strcmp(argv[i], "--rerecord")) ; /* run-wbx's; ignored here */
 		else { fprintf(stderr, "unknown argument %s\n", argv[i]); return 0; }
 	}

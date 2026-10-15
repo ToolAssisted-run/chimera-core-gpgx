@@ -1,0 +1,16 @@
+--- a/core/mem68k.c
++++ b/core/mem68k.c
+@@ -1543,6 +1543,13 @@
+ 
+ unsigned int pico_read_byte(unsigned int address)
+ {
++#ifdef CHIMERA_HOOKS
++  /* chimera: the IO, pen and page registers are the Pico's controls, and a
++     frame that reads none of them is a lag frame */
++  if ((address & 0xFF) >= 0x03 && (address & 0xFF) <= 0x0D)
++    real_input_callback();
++#endif
++
+   switch (address & 0xFF)
+   {
+     case 0x01:  /* VERSION register */

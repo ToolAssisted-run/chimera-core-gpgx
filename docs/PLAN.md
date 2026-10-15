@@ -199,3 +199,32 @@ edges call gpgx_reset(hard/soft).
   IDEA for chimera (not done): the engine could mount "rom.name" for plain
   opens too, the way it already does for projects - then any core could
   sniff the name. Not needed by any gate today.
+
+- 2026-10-15 - the Sega Pico (owner: "Wire Sega Pico", for BizHawk
+  parity; the core's previous owner, another session, handed it over).
+  Upstream already emulates it (system_hw SYSTEM_PICO from "SEGA PICO" in
+  the header; its IO, pen and page registers at 0x800000), without the
+  ADPCM speech chip. What was added:
+  - machine `pico` (system id PICO): the cartridge is loaded as a Mega
+    Drive one and the header must say SEGA PICO; a cartridge that does not
+    match the chosen machine is refused, both ways.
+  - its wire: Power, Reset, then Up, Down, Left, Right, Red Button, Pen
+    Button, Previous Page, Next Page, and two axes, Pen X and Pen Y, 0 to
+    65535 over the drawing pad, mapped to the pad's coordinates as
+    upstream's libretro frontend maps a pointer (X 0x03C..0x17C, Y
+    0x1FC..0x2F7). A page button acts when it goes down; the book stops at
+    the cover (0) and at page 7 (upstream's frontend wraps 0 to 7).
+  - patch 0002: a read of the Pico's IO, pen or page register counts as
+    reading the controls (lag frames). apply-patches.sh now applies each
+    patch that is not already in the tree.
+  - the harness: a `pico` wire, `--press I:F:N`, `--axis I:V`, and the
+    axis export in both runners. tests/make-pico.py writes a Pico cartridge
+    (68000 code) that copies the registers to RAM once a frame.
+  Measured: run-gate.sh 30/0 (the 23 before, and 7 Pico tests: native ==
+  sandbox under an exercise of every control and the pen, input shapes the
+  machine, savestates lossless, each button its own IO bit, the pen over the
+  whole pad, page turns and their ends, lag 1 of 600 reading the controls
+  and 600 of 600 reading none, the cartridge check). A planted fault (red
+  and pen buttons swapped) failed the controls test. Chimera's package
+  checks 18/0. Through chimera-run, a project's movie holding the pen at a
+  corner and pressing Next Page reaches the machine (60, 759, page 1).
