@@ -18,6 +18,12 @@
       "commit": "{submodule:extern/Genesis-Plus-GX}",
       "file": "extern/Genesis-Plus-GX/LICENSE.txt",
       "sourceUrl": "https://github.com/ekeeke/Genesis-Plus-GX/archive/{commit}.tar.gz"
+    },
+    {
+      "name": "A Sega Genesis six-button controller, a photograph (pictures/genesis-6-button-controller.png)",
+      "license": "Public domain",
+      "url": "https://commons.wikimedia.org/wiki/File:Sega-Genesis-6But-Cont.jpg",
+      "file": "pictures/genesis-6-button-controller.txt"
     }
   ]
 }

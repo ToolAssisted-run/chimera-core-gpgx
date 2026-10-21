@@ -48,6 +48,8 @@ build_one() {
 	cp "$root/build/meson-guest/core.wbx" "$staging/core.wbx"
 	cp "$here/waterbox.config" "$staging/waterbox.config"
 	cp "$here/default_keybinds.json" "$staging/default_keybinds.json"
+	# the pictures of the controller Config > Controls shows (chimera#338)
+	cp -r "$root/pictures" "$staging/pictures"
 	cp "$here/file_slots.json" "$staging/file_slots.json"
 	# the terms travel with the binary: this package may be downloaded on its
 	# own, and the emulator inside it is somebody else's work under somebody
