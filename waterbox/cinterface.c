@@ -180,9 +180,20 @@ void osd_input_update(void)
 {
 }
 
+/* Chimera's function to call at each read of the controls, so a Lua script's
+ * event.oninputpoll runs there (chimera#344). It is the same callback slot in
+ * every session and no savestate carries it. */
+ECL_INVISIBLE static uintptr_t (*g_inputPoll)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t);
+ECL_EXPORT void SetInputPollCallback(uint64_t fn)
+{
+	g_inputPoll = (uintptr_t (*)(uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t, uintptr_t))(uintptr_t)fn;
+}
+
 void real_input_callback(void)
 {
 	g_inputRead = 1;
+	if (g_inputPoll)
+		g_inputPoll(0, 0, 0, 0, 0, 0);
 }
 
 /* GPGX pulls files through this (rom, bioses, lock-on carts). Files are real

@@ -282,6 +282,33 @@ else
 	report "pico:cartridge-check" FAIL "'$(echo "$e1" | tail -1)' / '$(echo "$e2" | tail -1)'"
 fi
 
+# ------------------------------------------------- Chimera's engine
+# Each read of the controls is reported to Chimera as it happens, so a Lua
+# script's event.oninputpoll runs there (chimera#344): every frame the game
+# read them has at least one, and counting them moves nothing. Needs
+# CHIMERA_ROOT, a Chimera checkout with this core's package installed in it.
+runner="${CHIMERA_ROOT:-}/build/dll/chimera-run"
+package="${CHIMERA_ROOT:-}/build/Cores/gpgx.chimeraCore"
+if [ -n "${CHIMERA_ROOT:-}" ] && [ -x "$runner" ] && [ -f "$package" ]; then
+	printf '[Input]\nLogKey:#\n' > "$work/none.txt"
+	"$runner" "$package" "$root/tests/roms/Dino-Runner.bin" "$work/none.txt" --frames 300 --record "$work/idle.txt" > "$work/idle.log" 2>&1
+	"$runner" "$package" "$root/tests/roms/Dino-Runner.bin" "$work/idle.txt" \
+		--dump "68K RAM=$work/plain.ram" > "$work/plain.log" 2>&1
+	"$runner" "$package" "$root/tests/roms/Dino-Runner.bin" "$work/idle.txt" --count-input-polls \
+		--dump "68K RAM=$work/polls.ram" --meta "$work/polls.meta" > "$work/polls.log" 2>&1
+	polls=$(sed -n 's/^inputPolls=//p' "$work/polls.meta" 2> /dev/null)
+	lags=$(sed -n 's/^lagFrames=//p' "$work/polls.meta" 2> /dev/null)
+	frames=$(sed -n 's/^frames=//p' "$work/polls.meta" 2> /dev/null)
+	if [ "${polls:-none}" != none ] && [ "${frames:-0}" = 300 ] && [ "${lags:-300}" -lt 300 ] \
+		&& [ "${polls:-0}" -ge $(( 300 - ${lags:-300} )) ] && [ -s "$work/plain.ram" ] && cmp -s "$work/plain.ram" "$work/polls.ram"; then
+		report "engine:input-polls" PASS "the game's reads of its pad reach Chimera as they happen: $polls reads in 300 frames, $lags of them lag frames; 68K RAM is the run's without counting"
+	else
+		report "engine:input-polls" FAIL "inputPolls=${polls:-missing} frames=${frames:-?} lagFrames=${lags:-?}, or counting moved 68K RAM; the runner said: $(tail -1 "$work/polls.log" 2> /dev/null)"
+	fi
+else
+	printf "%-30s %-6s %s\n" "engine:input-polls" SKIP "needs CHIMERA_ROOT with build/dll/chimera-run and build/Cores/gpgx.chimeraCore"
+fi
+
 echo ""
 echo "$ok ok, $failed failed"
 [ "$failed" -gt 0 ] && exit 1
