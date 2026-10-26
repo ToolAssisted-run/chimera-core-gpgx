@@ -290,11 +290,16 @@ fi
 runner="${CHIMERA_ROOT:-}/build/dll/chimera-run"
 package="${CHIMERA_ROOT:-}/build/Cores/gpgx.chimeraCore"
 if [ -n "${CHIMERA_ROOT:-}" ] && [ -x "$runner" ] && [ -f "$package" ]; then
-	printf '[Input]\nLogKey:#\n' > "$work/none.txt"
-	"$runner" "$package" "$root/tests/roms/Dino-Runner.bin" "$work/none.txt" --frames 300 --record "$work/idle.txt" > "$work/idle.log" 2>&1
-	"$runner" "$package" "$root/tests/roms/Dino-Runner.bin" "$work/idle.txt" \
+	# a game runs only in a project (Chimera, 2026-10-26): one of the game
+	# with no input, to record the idle frames in, then one of those frames
+	polled="$root/tests/roms/Dino-Runner.bin"
+	"$runner" --new-project "$work/none.chimeraProject" "$package" "$polled" > "$work/none.make.log" 2>&1
+	"$runner" --project "$work/none.chimeraProject" "$package" --files "$(dirname "$polled")" \
+		--frames 300 --record "$work/idle.txt" > "$work/idle.log" 2>&1
+	"$runner" --new-project "$work/idle.chimeraProject" "$package" "$polled" "$work/idle.txt" > "$work/idle.make.log" 2>&1
+	"$runner" --project "$work/idle.chimeraProject" "$package" --files "$(dirname "$polled")" \
 		--dump "68K RAM=$work/plain.ram" > "$work/plain.log" 2>&1
-	"$runner" "$package" "$root/tests/roms/Dino-Runner.bin" "$work/idle.txt" --count-input-polls \
+	"$runner" --project "$work/idle.chimeraProject" "$package" --files "$(dirname "$polled")" --count-input-polls \
 		--dump "68K RAM=$work/polls.ram" --meta "$work/polls.meta" > "$work/polls.log" 2>&1
 	polls=$(sed -n 's/^inputPolls=//p' "$work/polls.meta" 2> /dev/null)
 	lags=$(sed -n 's/^lagFrames=//p' "$work/polls.meta" 2> /dev/null)
