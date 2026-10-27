@@ -58,10 +58,8 @@ end
 pcall(function() client.speedmode(6400) end)
 pcall(function() client.invisibleemulation(true) end)
 
--- The window may start a project a few frames in (emu.framecount() is not 0
--- when the script starts), so advance to the frame asked for, not by that many.
 local frames = tonumber(job.frames) or 120
-while emu.framecount() < frames do
+for _ = 1, frames do
 	emu.frameadvance()
 end
 

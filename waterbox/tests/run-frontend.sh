@@ -70,7 +70,7 @@ run_frontend() {
 	[ -n "$shot" ] && rm -f "$shot"
 	local project
 	project="$(game_project "$tag" "$cfg" "$pkg" "$therom")" || { echo "no project made (see tests/work/project.$tag/make.log)" > "$work/$tag.log"; return 1; }
-	( cd "$chimera_root" && MINIHAWK_JOB="$job" timeout 900 "$chimera_exe" --headless \
+	( cd "$chimera_root" && MINIHAWK_JOB="$job" timeout -s KILL 900 "$chimera_exe" --headless \
 		"--config=$cfg" "--core=$pkg" \
 		"--lua=$here/frontend-ram.lua" "--project=$project" ) > "$work/$tag.log" 2>&1
 	[ -f "$work/$tag.meta.txt" ] && grep -q "^status=OK" "$work/$tag.meta.txt"
@@ -113,7 +113,7 @@ run_controls() {
 	printf 'out=%s/%s.controls.json\nmeta=%s/%s.meta.txt\n' "$work" "$tag" "$work" "$tag" > "$job"
 	rm -f "$work/$tag.controls.json" "$work/$tag.meta.txt"
 	project="$(game_project "$tag" "$cfg" "$pkg" "$therom")" || { echo "no project made (see tests/work/project.$tag/make.log)" > "$work/$tag.log"; return 1; }
-	( cd "$chimera_root" && MINIHAWK_JOB="$job" timeout 900 "$chimera_exe" --headless \
+	( cd "$chimera_root" && MINIHAWK_JOB="$job" timeout -s KILL 900 "$chimera_exe" --headless \
 		"--config=$cfg" "--core=$pkg" \
 		"--lua=$here/dump-controls.lua" "--project=$project" ) > "$work/$tag.log" 2>&1
 	[ -f "$work/$tag.meta.txt" ] && grep -q "^status=OK" "$work/$tag.meta.txt"
