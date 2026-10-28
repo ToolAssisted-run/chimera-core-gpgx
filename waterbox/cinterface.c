@@ -44,6 +44,10 @@ int cinterface_force_sram;
  * machine back into it when it is loaded to be looked at. */
 ECL_INVISIBLE int cinterface_render_enabled = 1;
 
+/* Why Init refused, for GetLoadError: a key of languages/en.json, each of its
+ * arguments after a TEXT_ARG (chimera docs/translations.md). TEXT_ARG is a
+ * string of its own so the byte after it is never read as more of its hex. */
+#define TEXT_ARG "\x1f"
 static char g_loadError[512];
 static int g_inited;
 
@@ -488,7 +492,7 @@ ECL_EXPORT int Init(void)
 	const char *file = boot_file(name, sizeof name);
 	if (file == NULL)
 	{
-		snprintf(g_loadError, sizeof g_loadError, "no cart or cd file is mounted");
+		snprintf(g_loadError, sizeof g_loadError, "error.no_file");
 		return 0;
 	}
 
@@ -530,13 +534,13 @@ ECL_EXPORT int Init(void)
 			if (looksMD && is8bit)
 			{
 				snprintf(g_loadError, sizeof g_loadError,
-					"'%s' is a Mega Drive cartridge; open it with the Mega Drive core package", file);
+					"error.mega_drive_cart" TEXT_ARG "%s", file);
 				return 0;
 			}
 			if (!looksMD && !is8bit)
 			{
 				snprintf(g_loadError, sizeof g_loadError,
-					"'%s' is not a Mega Drive cartridge; open it with the package for its console", file);
+					"error.not_mega_drive_cart" TEXT_ARG "%s", file);
 				return 0;
 			}
 		}
@@ -563,7 +567,7 @@ ECL_EXPORT int Init(void)
 
 	if (!load_rom((char *)file))
 	{
-		snprintf(g_loadError, sizeof g_loadError, "GPGX could not load '%s'", file);
+		snprintf(g_loadError, sizeof g_loadError, "error.not_loaded" TEXT_ARG "%s", file);
 		return 0;
 	}
 
@@ -572,13 +576,13 @@ ECL_EXPORT int Init(void)
 	if (g_chosenHw == 6 && system_hw != SYSTEM_PICO)
 	{
 		snprintf(g_loadError, sizeof g_loadError,
-			"'%s' is not a Sega Pico cartridge (its header does not say SEGA PICO); choose the machine it is for", file);
+			"error.not_pico_cart" TEXT_ARG "%s", file);
 		return 0;
 	}
 	if (g_chosenHw != 6 && g_chosenHw != 0 && system_hw == SYSTEM_PICO)
 	{
 		snprintf(g_loadError, sizeof g_loadError,
-			"'%s' is a Sega Pico cartridge; choose the Sega Pico machine", file);
+			"error.pico_cart" TEXT_ARG "%s", file);
 		return 0;
 	}
 

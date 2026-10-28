@@ -51,6 +51,8 @@ build_one() {
 	# the pictures of the controller Config > Controls shows (chimera#338)
 	cp -r "$root/pictures" "$staging/pictures"
 	cp "$here/file_slots.json" "$staging/file_slots.json"
+	# the texts a person reads, a table per language (chimera docs/translations.md)
+	cp -r "$here/languages" "$staging/languages"
 	# the terms travel with the binary: this package may be downloaded on its
 	# own, and the emulator inside it is somebody else's work under somebody
 	# else's licence (see waterbox/package-licenses.json)

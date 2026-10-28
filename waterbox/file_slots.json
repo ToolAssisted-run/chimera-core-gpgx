@@ -3,56 +3,56 @@
   "slots": [
     {
       "id": "cart_md",
-      "title": "Cartridge",
+      "title": "common.cartridge",
       "min": 1,
       "max": 1,
       "formats": ["md", "gen", "bin", "smd", "mdx"],
-      "help": "The Mega Drive / Genesis cartridge ROM. A cartridge for another console is refused, because the project decides the machine and the file does not.",
+      "help": "slot.cart_md.help",
       "exposedWhen": { "setting": "systemHardware", "is": "genesis" }
     },
     {
       "id": "cart_sms",
-      "title": "Cartridge",
+      "title": "common.cartridge",
       "min": 1,
       "max": 1,
       "formats": ["sms"],
-      "help": "The Master System cartridge ROM.",
+      "help": "slot.cart_sms.help",
       "exposedWhen": { "setting": "systemHardware", "is": "sms" }
     },
     {
       "id": "cart_gg",
-      "title": "Cartridge",
+      "title": "common.cartridge",
       "min": 1,
       "max": 1,
       "formats": ["gg"],
-      "help": "The Game Gear cartridge ROM.",
+      "help": "slot.cart_gg.help",
       "exposedWhen": { "setting": "systemHardware", "is": "gg" }
     },
     {
       "id": "cart_sg",
-      "title": "Cartridge",
+      "title": "common.cartridge",
       "min": 1,
       "max": 1,
       "formats": ["sg"],
-      "help": "The SG-1000 cartridge ROM.",
+      "help": "slot.cart_sg.help",
       "exposedWhen": { "setting": "systemHardware", "is": "sg" }
     },
     {
       "id": "cart_pico",
-      "title": "Cartridge",
+      "title": "common.cartridge",
       "min": 1,
       "max": 1,
       "formats": ["md", "bin", "gen"],
-      "help": "The Sega Pico cartridge ROM. A Pico cartridge says SEGA PICO in its header; a cartridge that does not is refused, because the project decides the machine and the file does not.",
+      "help": "slot.cart_pico.help",
       "exposedWhen": { "setting": "systemHardware", "is": "pico" }
     },
     {
       "id": "cd",
-      "title": "Sega CD discs",
+      "title": "slot.cd",
       "min": 1,
       "max": -1,
       "formats": ["cue", "iso", "bin"],
-      "help": "Sega CD / Mega CD disc images. Each is a .cue file, whose track files join the project automatically, or a raw single-track dump (.iso or .bin). The first disc is in the drive when the machine starts. The order here is the order the Previous Disk and Next Disk inputs go through. The CD BIOS of the matching region is needed and is asked for on the firmware page.",
+      "help": "slot.cd.help",
       "exposedWhen": { "setting": "systemHardware", "is": "segacd" }
     }
   ]

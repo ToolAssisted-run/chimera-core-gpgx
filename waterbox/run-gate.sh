@@ -276,7 +276,7 @@ cp "$root/tests/roms/Dino-Runner.bin" "$work/picomix1/"; printf '{"cart_pico":["
 cp "$wd/pico.bin" "$work/picomix2/"; printf '{"cart_md":["pico.bin"]}' > "$work/picomix2/slots"; printf '{"systemHardware":"genesis"}' > "$work/picomix2/settings"
 e1="$("$nat/run-wbx" "$gst/core.wbx" "$work/picomix1" "${pargs[@]}" --frames 1 2>&1 >/dev/null)"
 e2="$("$nat/run-wbx" "$gst/core.wbx" "$work/picomix2" --frames 1 2>&1 >/dev/null)"
-if echo "$e1" | grep -q "is not a Sega Pico cartridge" && echo "$e2" | grep -q "is a Sega Pico cartridge"; then
+if echo "$e1" | grep -q "error.not_pico_cart" && echo "$e2" | grep -q "error.pico_cart"; then
 	report "pico:cartridge-check" PASS "a Mega Drive cartridge on the Pico, and a Pico one on the Mega Drive, are refused"
 else
 	report "pico:cartridge-check" FAIL "'$(echo "$e1" | tail -1)' / '$(echo "$e2" | tail -1)'"
