@@ -32,6 +32,17 @@ done
 }
 sr="$mbuild/guest-sysroot"
 
+
+# The guest is built for the CPU this runs on (a package is built natively,
+# never cross-built). The CPU flags are miniBox's own for that CPU (its
+# meson.build, waterbox_cpu_flags); x86_64 keeps the flags it always had.
+arch="$(uname -m)"
+case "$arch" in
+	x86_64) cpu_flags="'-mcmodel=large', '-fcf-protection=none'" ;;
+	aarch64) cpu_flags="'-mbranch-protection=none', '-mno-outline-atomics', '-ffp-contract=off', '-fsigned-char', '-ffixed-x18'" ;;
+	*) echo "miniBox runs x86_64 and aarch64 guests, not $arch" >&2; exit 1 ;;
+esac
+
 mkdir -p "$root/build"
 cross="$root/build/guest-cross.ini"
 
@@ -46,8 +57,8 @@ strip = 'strip'
 
 [host_machine]
 system = 'linux'
-cpu_family = 'x86_64'
-cpu = 'x86_64'
+cpu_family = '$arch'
+cpu = '$arch'
 endian = 'little'
 
 [properties]
@@ -60,7 +71,7 @@ guest_sysroot = '$sr'
 # strict c99: musl's BSD 'uint' typedef stays hidden and cannot collide
 # with m68k.h's '#define uint' (the BizHawk build relied on the same)
 c_std = 'c99'
-c_args = ['-specs', '$sr/lib/musl-gcc.specs', '-fvisibility=hidden', '-mcmodel=large', '-mstack-protector-guard=global', '-fno-stack-protector', '-fno-pic', '-fno-pie', '-fcf-protection=none', '-DCHIMERA_GUEST', '-I$mb/extern/emulibc', '-I$mb/source/guest/include', '-I$mb/extern/jsmn']
+c_args = ['-specs', '$sr/lib/musl-gcc.specs', '-fvisibility=hidden', $cpu_flags, '-mstack-protector-guard=global', '-fno-stack-protector', '-fno-pic', '-fno-pie', '-DCHIMERA_GUEST', '-I$mb/extern/emulibc', '-I$mb/source/guest/include', '-I$mb/extern/jsmn']
 c_link_args = ['-specs', '$sr/lib/musl-gcc.specs']
 EOF
 
