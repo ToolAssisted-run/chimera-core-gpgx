@@ -28,6 +28,12 @@
 #include <eeprom_i2c.h>
 #include <vdp_render.h>
 
+/* this core's windows in Chimera's Emulator menu: miniBox's ready-made Export
+ * Save Data, built on its exports (Chimera has no tool of its own for a core,
+ * Chimera issue 610) */
+#define WBX_WINDOWS_IMPLEMENTATION
+#include <waterbox_windows.h>
+
 /* peek helpers our upstream patch adds (see patches/0001-chimera-hooks.patch) */
 extern int eeprom_i2c_get_size(void);
 extern int sms_cart_is_codies(void);
